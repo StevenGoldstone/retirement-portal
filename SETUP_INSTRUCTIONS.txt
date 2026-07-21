@@ -1,0 +1,53 @@
+STEVEN & BRANDÉ RETIREMENT PORTAL 2.0 — FINAL SETUP
+
+The website files are complete and already contain your Firebase web-app configuration.
+
+A. ENABLE EMAIL/PASSWORD SIGN-IN
+1. Open Firebase Console.
+2. Open the Retirement-Portal project.
+3. In the left menu, click Build or Security > Authentication.
+4. Click Get started.
+5. Open the Sign-in method tab.
+6. Select Email/Password.
+7. Turn on Email/Password, then Save.
+
+B. CREATE THE PORTAL USER ACCOUNTS
+1. In Authentication, open the Users tab.
+2. Click Add user.
+3. Enter Steven's email and create a private password.
+4. Repeat for Brandé only if she will use a separate account.
+   You may instead use the same Steven account on every device.
+
+C. INSTALL SECURE FIRESTORE RULES
+1. In Firebase, open Firestore Database.
+2. Click Rules.
+3. Open the included firestore.rules file.
+4. Replace:
+   REPLACE_WITH_STEVEN_EMAIL
+   REPLACE_WITH_BRANDE_EMAIL
+   with the exact account email addresses.
+5. Copy all of the updated rules into Firebase.
+6. Click Publish.
+
+If using only one shared account, leave just that one email in the list, for example:
+request.auth.token.email in ["your-email@example.com"];
+
+D. REPLACE THE GITHUB FILES
+1. Open github.com/StevenGoldstone/retirement-portal
+2. Upload every file inside this Version 2.0 folder.
+3. Choose Replace files when GitHub warns that the names already exist.
+4. Commit changes directly to the main branch.
+5. Allow approximately 1–3 minutes for GitHub Pages to update.
+
+E. OPEN THE PORTAL
+https://stevengoldstone.github.io/retirement-portal/
+
+1. Tap Sign in.
+2. Use the Firebase Authentication email/password.
+3. Edit any goal.
+4. Open the portal on another device and sign in.
+5. The progress should update automatically on both devices.
+
+IMPORTANT SECURITY NOTE
+Do not use Firestore test mode or rules that allow everyone to read/write.
+The Firebase web configuration is designed to appear in website code; the security comes from Authentication and Firestore Rules.

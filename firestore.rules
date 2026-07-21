@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /portals/retirement {
+      allow read, write: if request.auth != null
+        && request.auth.token.email in [
+          "REPLACE_WITH_STEVEN_EMAIL",
+          "REPLACE_WITH_BRANDE_EMAIL"
+        ];
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,12 +1,11 @@
 {
-  "name": "Steven & Brand\u00e9 Professional Retirement Portal",
+  "name": "Steven & Brand\u00e9 Retirement Portal 2.0",
   "short_name": "Retirement Portal",
-  "description": "A professional retirement countdown, goals, milestones, and motivation portal.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#081824",
-  "theme_color": "#0b1f2a",
+  "background_color": "#07131f",
+  "theme_color": "#0b1724",
   "icons": [
     {
       "src": "icon-192.png",
