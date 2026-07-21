@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.0</title>
+<title>Steven & Brandé Retirement Portal 2.0.1</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -83,7 +83,7 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.0</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.0.1</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -168,7 +168,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebas
 import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-const firebaseConfig = {"apiKey": "AIzaSyAiGCCtUMHpJIAulcfjxwo00jhYiKsB8nI", "authDomain": "retirement-portal-64fb5.firebaseapp.com", "projectId": "retirement-portal-64fb5", "storageBucket": "retirement-portal-64fb5.firebasestorage.app", "messagingSenderId": "210774227726", "appId": "1:210774227726:web:ac66d3faebfc952d43755f"};
+const firebaseConfig = {"apiKey": "AIzaSyAiGCCtUMHsJIAulcfjxwo00jhYiKsB8nI", "authDomain": "retirement-portal-64fb5.firebaseapp.com", "projectId": "retirement-portal-64fb5", "storageBucket": "retirement-portal-64fb5.firebasestorage.app", "messagingSenderId": "210774227726", "appId": "1:210774227726:web:ac66d3faebfc952d43755f"};
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -230,7 +230,21 @@ window.closeAuth=()=>document.getElementById("authModal").classList.remove("show
 window.signInPortal=async()=>{
  const email=document.getElementById("email").value.trim(), password=document.getElementById("password").value;
  document.getElementById("authError").textContent="";
- try{await signInWithEmailAndPassword(auth,email,password);closeAuth()}catch(e){document.getElementById("authError").textContent="Sign-in failed. Check the email/password and Firebase Authentication setup."}
+ try{
+  await signInWithEmailAndPassword(auth,email,password);
+  closeAuth();
+}catch(e){
+  const messages = {
+    "auth/invalid-credential": "The email or password is incorrect.",
+    "auth/user-not-found": "No Firebase user was found for this email.",
+    "auth/wrong-password": "The password is incorrect.",
+    "auth/too-many-requests": "Too many attempts. Wait a few minutes and try again.",
+    "auth/network-request-failed": "Network error. Check the internet connection and try again.",
+    "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase."
+  };
+  document.getElementById("authError").textContent = messages[e.code] || ("Sign-in failed: " + (e.code || e.message));
+  console.error("Firebase sign-in error:", e);
+}
 };
 
 onAuthStateChanged(auth,user=>{

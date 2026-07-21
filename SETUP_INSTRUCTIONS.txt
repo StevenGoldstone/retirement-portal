@@ -1,3 +1,7 @@
+VERSION 2.0.1 RELEASE NOTE
+This release corrects the Firebase API key and adds clearer sign-in error messages.
+Upload every file inside this folder to the root of the GitHub repository, replacing existing files.
+
 STEVEN & BRANDÉ RETIREMENT PORTAL 2.0 — FINAL SETUP
 
 The website files are complete and already contain your Firebase web-app configuration.
