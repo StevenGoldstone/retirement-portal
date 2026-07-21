@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.0.1</title>
+<title>Steven & Brandé Retirement Portal 2.0.2</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -83,7 +83,7 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.0.1</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.0.2</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -168,7 +168,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebas
 import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-const firebaseConfig = {"apiKey": "AIzaSyAiGCCtUMHsJIAulcfjxwo00jhYiKsB8nI", "authDomain": "retirement-portal-64fb5.firebaseapp.com", "projectId": "retirement-portal-64fb5", "storageBucket": "retirement-portal-64fb5.firebasestorage.app", "messagingSenderId": "210774227726", "appId": "1:210774227726:web:ac66d3faebfc952d43755f"};
+const firebaseConfig = {
+  "apiKey": "AIzaSyAiGcCtUMHsJIAulcfjxwoOOjhYiKsB8nI",
+  "authDomain": "retirement-portal-64fb5.firebaseapp.com",
+  "projectId": "retirement-portal-64fb5",
+  "storageBucket": "retirement-portal-64fb5.firebasestorage.app",
+  "messagingSenderId": "210774227726",
+  "appId": "1:210774227726:web:ac66d3faebfc952d43755f"
+};
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);

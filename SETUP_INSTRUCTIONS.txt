@@ -1,3 +1,16 @@
+VERSION 2.0.2 RELEASE NOTE
+This release uses the exact Firebase configuration copied directly from the Firebase Console.
+It also changes the service-worker cache name so GitHub Pages and installed devices fetch the corrected build.
+
+DEPLOYMENT
+1. Upload every file inside this folder to the root of the GitHub repository.
+2. Replace the existing files.
+3. Commit the changes.
+4. Wait 1–3 minutes.
+5. Open https://stevengoldstone.github.io/retirement-portal/
+6. Hold Shift while reloading the page.
+7. Confirm that the header says Version 2.0.2, then sign in.
+
 VERSION 2.0.1 RELEASE NOTE
 This release corrects the Firebase API key and adds clearer sign-in error messages.
 Upload every file inside this folder to the root of the GitHub repository, replacing existing files.
