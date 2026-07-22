@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.0.2</title>
+<title>Steven & Brandé Retirement Portal 2.1</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -83,7 +83,7 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.0.2</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.1</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -196,7 +196,15 @@ const remaining = Math.max(0, retirement-today), days=Math.ceil(remaining/864000
 document.getElementById("days").textContent=days.toLocaleString();
 document.getElementById("months").textContent=Math.floor(days/30.4375);
 document.getElementById("weeks").textContent=Math.floor(days/7);
-document.getElementById("journey").textContent=Math.round(Math.max(0,Math.min(1,(today-journeyStart)/(retirement-journeyStart)))*100)+"%";
+const totalJourneyDays = Math.round((retirement - journeyStart) / 86400000);
+const elapsedJourneyDays = Math.max(
+  0,
+  Math.min(totalJourneyDays, Math.round((today - journeyStart) / 86400000))
+);
+const journeyComplete = totalJourneyDays > 0
+  ? (elapsedJourneyDays / totalJourneyDays) * 100
+  : 100;
+document.getElementById("journey").textContent = journeyComplete.toFixed(1) + "%";
 const h=now.getHours();
 document.getElementById("greeting").textContent=(h<12?"Good Morning":h<18?"Good Afternoon":"Good Evening")+", Steven & Brandé";
 const quotes=["Every extra payment buys a little more freedom.", "Discipline today creates options tomorrow.", "Financial freedom is built one decision at a time.", "Stay the course. Consistency wins.", "One payment closer. One day closer.", "Today's discipline creates tomorrow's choices.", "Retirement is built long before it begins.", "A clear plan turns hope into progress.", "The finish line gets closer every single day.", "The plan is in place. Keep moving forward."];
