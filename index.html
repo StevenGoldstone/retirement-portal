@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.1</title>
+<title>Steven & Brandé Retirement Portal 2.2</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -74,6 +74,26 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 .secondary{background:transparent;color:var(--text);border:1px solid var(--line);padding:10px 15px;border-radius:10px}
 .notice{padding:12px;border-radius:12px;background:rgba(239,198,110,.12);border:1px solid rgba(239,198,110,.25);color:#ffe7b0;font-size:14px;line-height:1.45;margin-top:12px}
 .error{color:var(--danger);font-size:14px;margin-top:8px}
+
+.moneygrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:15px}
+.stat{padding:12px;border-radius:13px;background:rgba(255,255,255,.055);border:1px solid var(--line)}
+.statlabel{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em}
+.statvalue{font-size:17px;font-weight:850;margin-top:5px}
+.goalactions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.future{color:var(--gold);font-weight:800;font-size:13px;margin-top:4px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar h2{margin:0}
+.primary.inline,.secondary.inline{padding:9px 13px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dialog.wide{width:min(760px,100%);max-height:88vh;overflow:auto}
+.sectiontitle{font-weight:850;margin:20px 0 4px;color:var(--gold);font-size:15px}
+.helper{color:var(--muted);font-size:13px;line-height:1.45}
+.historynote{color:var(--muted);font-size:12px;margin-top:9px}
+input[type=date]{color-scheme:dark}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);line-height:1.5}
+@media(max-width:700px){.moneygrid{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:1fr}}
+@media(max-width:430px){.moneygrid{grid-template-columns:1fr}}
+
 @media(max-width:850px){.main{grid-template-columns:1fr}.counts{grid-template-columns:1fr 1fr}.syncbox{text-align:left}}
 @media(max-width:520px){header,.card{border-radius:18px;padding:18px}.scorewrap{grid-template-columns:1fr}.ring{margin:auto}}
 </style>
@@ -83,7 +103,7 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.1</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.2</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -102,7 +122,13 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 
 <div class="main">
  <section class="card glass">
-  <h2>Shared Financial Progress</h2>
+  <div class="toolbar">
+   <h2>Shared Financial Progress</h2>
+   <div>
+    <button class="secondary inline" id="settingsBtn">Starting Balances</button>
+    <button class="primary inline" id="updateBtn">Update Financials</button>
+   </div>
+  </div>
   <div id="goals"></div>
  </section>
 
@@ -113,7 +139,7 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
     <div class="ring" id="ring"><div class="ringtext"><div class="ringvalue" id="score">0%</div><div class="ringlabel">OVERALL SCORE</div></div></div>
     <div>
      <strong style="font-size:19px">Steady progress wins.</strong>
-     <p style="color:var(--muted);line-height:1.55">The score is the average of your three financial goals. Every update is saved to Firestore and appears on every signed-in device.</p>
+     <p style="color:var(--muted);line-height:1.55">The score is calculated automatically from the actual balances for credit cards, the Escondido mortgage, and the truck loan. Every update is saved to Firestore and appears on every signed-in device.</p>
     </div>
    </div>
   </section>
@@ -141,13 +167,23 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 <div class="footer">Private cloud synchronization • GitHub Pages + Firebase</div>
 </div>
 
-<div class="modal" id="editModal">
- <div class="dialog">
-  <h3 id="editTitle">Update progress</h3>
-  <p>Enter the current completion percentage.</p>
-  <div class="field"><label>Progress percentage</label><input id="editValue" type="number" min="0" max="100" step="1"></div>
-  <div class="error" id="editError"></div>
-  <div class="actions"><button class="secondary" onclick="closeEdit()">Cancel</button><button class="primary" onclick="saveEdit()">Save & Sync</button></div>
+<div class="modal" id="settingsModal">
+ <div class="dialog wide">
+  <h3>Starting Balances</h3>
+  <p>Enter each balance at the beginning of tracking and the date tracking began. These values normally only need to be entered once.</p>
+  <div id="settingsFields"></div>
+  <div class="error" id="settingsError"></div>
+  <div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="primary" onclick="saveSettings()">Save Starting Balances</button></div>
+ </div>
+</div>
+
+<div class="modal" id="updateModal">
+ <div class="dialog wide">
+  <h3>Update Financials</h3>
+  <p>Enter the latest balances. The portal will calculate the amount paid, progress percentage, average monthly payoff rate, estimated payoff date, and Retirement Readiness.</p>
+  <div id="updateFields"></div>
+  <div class="error" id="updateError"></div>
+  <div class="actions"><button class="secondary" onclick="closeUpdate()">Cancel</button><button class="primary" onclick="saveFinancials()">Save & Sync</button></div>
  </div>
 </div>
 
@@ -165,7 +201,7 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -181,12 +217,20 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const goalsMeta = {
- creditCards: {name:"Credit-card elimination", detail:"Remove revolving debt and reclaim monthly cash flow."},
- mortgage: {name:"Escondido mortgage payoff", detail:"Accelerate principal payments toward the October 2028 target."},
- truck: {name:"Truck loan payoff", detail:"Enter retirement without a vehicle loan."}
+ creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", readiness:true},
+ mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", readiness:true},
+ truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", readiness:true},
+ oceanside: {name:"Oceanside Mortgage", detail:"Track payments when Michael & Susan begin on October 5, 2028.", readiness:false, future:true}
 };
-let values = {creditCards:0,mortgage:0,truck:0};
-let activeKey = null;
+
+const blankFinancial = () => ({startingBalance:null,currentBalance:null,startDate:""});
+let financials = {
+ creditCards: blankFinancial(),
+ mortgage: blankFinancial(),
+ truck: blankFinancial(),
+ oceanside: blankFinancial()
+};
+let history = [];
 let unsubscribe = null;
 
 const retirement = new Date("2028-10-05T00:00:00");
@@ -197,45 +241,153 @@ document.getElementById("days").textContent=days.toLocaleString();
 document.getElementById("months").textContent=Math.floor(days/30.4375);
 document.getElementById("weeks").textContent=Math.floor(days/7);
 const totalJourneyDays = Math.round((retirement - journeyStart) / 86400000);
-const elapsedJourneyDays = Math.max(
-  0,
-  Math.min(totalJourneyDays, Math.round((today - journeyStart) / 86400000))
-);
-const journeyComplete = totalJourneyDays > 0
-  ? (elapsedJourneyDays / totalJourneyDays) * 100
-  : 100;
+const elapsedJourneyDays = Math.max(0,Math.min(totalJourneyDays,Math.round((today - journeyStart) / 86400000)));
+const journeyComplete = totalJourneyDays > 0 ? (elapsedJourneyDays / totalJourneyDays) * 100 : 100;
 document.getElementById("journey").textContent = journeyComplete.toFixed(1) + "%";
 const h=now.getHours();
 document.getElementById("greeting").textContent=(h<12?"Good Morning":h<18?"Good Afternoon":"Good Evening")+", Steven & Brandé";
 const quotes=["Every extra payment buys a little more freedom.", "Discipline today creates options tomorrow.", "Financial freedom is built one decision at a time.", "Stay the course. Consistency wins.", "One payment closer. One day closer.", "Today's discipline creates tomorrow's choices.", "Retirement is built long before it begins.", "A clear plan turns hope into progress.", "The finish line gets closer every single day.", "The plan is in place. Keep moving forward."];
 document.getElementById("quote").textContent="“"+quotes[Math.floor((today-new Date(today.getFullYear(),0,0))/86400000)%quotes.length]+"”";
 
-function render() {
+const money = n => Number.isFinite(Number(n)) ? Number(n).toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}) : "—";
+const parseMoney = v => {
+ const n=Number(String(v ?? "").replace(/[$,\s]/g,""));
+ return Number.isFinite(n) && n>=0 ? n : null;
+};
+const dateText = d => d ? new Date(d+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—";
+const monthsBetween = (start,end) => Math.max(0,(end.getFullYear()-start.getFullYear())*12+(end.getMonth()-start.getMonth())+(end.getDate()-start.getDate())/30.4375);
+
+function metrics(item){
+ const start=Number(item?.startingBalance), current=Number(item?.currentBalance);
+ if(!Number.isFinite(start)||start<=0||!Number.isFinite(current)||current<0) return null;
+ const amountPaid=Math.max(0,start-current);
+ const percent=Math.max(0,Math.min(100,(amountPaid/start)*100));
+ let monthlyRate=null, payoffDate=null;
+ if(item.startDate){
+  const sd=new Date(item.startDate+"T00:00:00");
+  const elapsed=monthsBetween(sd,today);
+  if(elapsed>=0.25 && amountPaid>0){
+   monthlyRate=amountPaid/elapsed;
+   if(current===0) payoffDate="Paid off";
+   else if(monthlyRate>0){
+    const monthsLeft=current/monthlyRate;
+    const projected=new Date(today);
+    projected.setDate(projected.getDate()+Math.round(monthsLeft*30.4375));
+    payoffDate=projected.toLocaleDateString("en-US",{month:"short",year:"numeric"});
+   }
+  }
+ }
+ return {start,current,amountPaid,percent,monthlyRate,payoffDate};
+}
+
+function render(){
  const host=document.getElementById("goals"); host.innerHTML="";
+ const readiness=[];
  Object.entries(goalsMeta).forEach(([key,m])=>{
-  const pct=Math.max(0,Math.min(100,Number(values[key]||0)));
+  const item=financials[key]||blankFinancial();
+  const x=metrics(item);
+  const futureLocked=m.future && today<retirement;
+  if(x && m.readiness) readiness.push(x.percent);
+  const pct=x ? x.percent : 0;
+  const status=futureLocked ? `<div class="future">Future goal • Payments begin October 5, 2028</div>` : "";
+  const stats=x ? `
+   <div class="moneygrid">
+    <div class="stat"><div class="statlabel">Starting Balance</div><div class="statvalue">${money(x.start)}</div></div>
+    <div class="stat"><div class="statlabel">Current Balance</div><div class="statvalue">${money(x.current)}</div></div>
+    <div class="stat"><div class="statlabel">Amount Paid</div><div class="statvalue">${money(x.amountPaid)}</div></div>
+    <div class="stat"><div class="statlabel">Monthly Payoff Rate</div><div class="statvalue">${x.monthlyRate?money(x.monthlyRate)+"/mo":"—"}</div></div>
+    <div class="stat"><div class="statlabel">Tracking Since</div><div class="statvalue">${dateText(item.startDate)}</div></div>
+    <div class="stat"><div class="statlabel">Estimated Payoff</div><div class="statvalue">${x.payoffDate||"—"}</div></div>
+   </div>` :
+   `<div class="empty">Add a starting balance, current balance, and tracking start date to activate automatic calculations for this account.</div>`;
   host.insertAdjacentHTML("beforeend",`<div class="goal">
-   <div class="goalhead"><div><div class="goalname">${m.name}</div><div class="goalmeta">${m.detail}</div></div><div class="pct">${pct}%</div></div>
+   <div class="goalhead"><div><div class="goalname">${m.name}</div><div class="goalmeta">${m.detail}</div>${status}</div><div class="pct">${x?pct.toFixed(1):"0.0"}%</div></div>
    <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
-   <button class="edit" data-key="${key}">Edit progress</button></div>`);
+   ${stats}
+  </div>`);
  });
- host.querySelectorAll(".edit").forEach(b=>b.onclick=()=>openEdit(b.dataset.key));
- const avg=Math.round((Number(values.creditCards||0)+Number(values.mortgage||0)+Number(values.truck||0))/3);
- document.getElementById("score").textContent=avg+"%";
+ const avg=readiness.length===3 ? readiness.reduce((a,b)=>a+b,0)/3 : (readiness.length ? readiness.reduce((a,b)=>a+b,0)/readiness.length : 0);
+ document.getElementById("score").textContent=avg.toFixed(1)+"%";
  document.getElementById("ring").style.background=`conic-gradient(var(--green) ${avg*3.6}deg,rgba(255,255,255,.1) 0deg)`;
 }
 render();
 
-window.openEdit=(key)=>{activeKey=key;document.getElementById("editTitle").textContent=goalsMeta[key].name;document.getElementById("editValue").value=values[key]||0;document.getElementById("editError").textContent="";document.getElementById("editModal").classList.add("show")};
-window.closeEdit=()=>document.getElementById("editModal").classList.remove("show");
-window.saveEdit=async()=>{
- if(!auth.currentUser){document.getElementById("editError").textContent="Please sign in first.";return}
- const n=Number(document.getElementById("editValue").value);
- if(!Number.isFinite(n)||n<0||n>100){document.getElementById("editError").textContent="Enter a number from 0 through 100.";return}
+function accountFields(mode){
+ return Object.entries(goalsMeta).map(([key,m])=>{
+  const item=financials[key]||blankFinancial();
+  if(mode==="settings"){
+   return `<div class="sectiontitle">${m.name}</div>
+    <div class="formgrid">
+     <div class="field"><label>Starting Balance</label><input id="start-${key}" inputmode="decimal" placeholder="$0" value="${item.startingBalance??""}"></div>
+     <div class="field"><label>Tracking Start Date</label><input id="date-${key}" type="date" value="${item.startDate||""}"></div>
+    </div>`;
+  }
+  return `<div class="sectiontitle">${m.name}</div>
+   <div class="helper">${m.future&&today<retirement?"You may enter the balance now for reference; this goal is excluded from Retirement Readiness until the payment phase begins.":"Starting balance: "+money(item.startingBalance)}</div>
+   <div class="field"><label>Current Balance</label><input id="current-${key}" inputmode="decimal" placeholder="$0" value="${item.currentBalance??""}"></div>`;
+ }).join("");
+}
+
+document.getElementById("settingsBtn").onclick=()=>{
+ document.getElementById("settingsError").textContent="";
+ document.getElementById("settingsFields").innerHTML=accountFields("settings");
+ document.getElementById("settingsModal").classList.add("show");
+};
+window.closeSettings=()=>document.getElementById("settingsModal").classList.remove("show");
+
+window.saveSettings=async()=>{
+ if(!auth.currentUser){document.getElementById("settingsError").textContent="Please sign in first.";return}
+ const next=structuredClone(financials);
+ for(const key of Object.keys(goalsMeta)){
+  const start=parseMoney(document.getElementById(`start-${key}`).value);
+  const date=document.getElementById(`date-${key}`).value;
+  if((start===null)!=(date==="")){
+   document.getElementById("settingsError").textContent=`For ${goalsMeta[key].name}, enter both a starting balance and tracking start date, or leave both blank.`;
+   return;
+  }
+  next[key]={...next[key],startingBalance:start,startDate:date};
+  if(next[key].currentBalance===null && start!==null) next[key].currentBalance=start;
+ }
  try{
-  await setDoc(doc(db,"portals","retirement"),{[activeKey]:Math.round(n),updatedAt:serverTimestamp(),updatedBy:auth.currentUser.email},{merge:true});
-  closeEdit();
- }catch(e){document.getElementById("editError").textContent=e.message}
+  await setDoc(doc(db,"portals","retirement"),{financials:next,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.email},{merge:true});
+  closeSettings();
+ }catch(e){document.getElementById("settingsError").textContent=e.message}
+};
+
+document.getElementById("updateBtn").onclick=()=>{
+ document.getElementById("updateError").textContent="";
+ document.getElementById("updateFields").innerHTML=accountFields("update");
+ document.getElementById("updateModal").classList.add("show");
+};
+window.closeUpdate=()=>document.getElementById("updateModal").classList.remove("show");
+
+window.saveFinancials=async()=>{
+ if(!auth.currentUser){document.getElementById("updateError").textContent="Please sign in first.";return}
+ const next=structuredClone(financials);
+ const snapshot={date:new Date().toISOString(),balances:{}};
+ for(const key of Object.keys(goalsMeta)){
+  const current=parseMoney(document.getElementById(`current-${key}`).value);
+  if(current===null && next[key].startingBalance!==null){
+   document.getElementById("updateError").textContent=`Enter a current balance for ${goalsMeta[key].name}.`;
+   return;
+  }
+  if(current!==null && next[key].startingBalance===null){
+   document.getElementById("updateError").textContent=`Enter the starting balance for ${goalsMeta[key].name} first.`;
+   return;
+  }
+  next[key]={...next[key],currentBalance:current};
+  snapshot.balances[key]=current;
+ }
+ try{
+  const newHistory=[...history,snapshot].slice(-60);
+  await setDoc(doc(db,"portals","retirement"),{
+   financials:next,
+   balanceHistory:newHistory,
+   updatedAt:serverTimestamp(),
+   updatedBy:auth.currentUser.email
+  },{merge:true});
+  closeUpdate();
+ }catch(e){document.getElementById("updateError").textContent=e.message}
 };
 
 document.getElementById("accountBtn").onclick=()=>{
@@ -269,7 +421,15 @@ onAuthStateChanged(auth,user=>{
   dot.classList.add("online"); text.textContent="Cloud sync active"; btn.textContent="Sign out";
   const ref=doc(db,"portals","retirement");
   unsubscribe=onSnapshot(ref,snap=>{
-   if(snap.exists()) values={...values,...snap.data()};
+   if(snap.exists()){
+    const data=snap.data();
+    if(data.financials){
+      for(const key of Object.keys(goalsMeta)){
+        financials[key]={...blankFinancial(),...(data.financials[key]||{})};
+      }
+    }
+    history=Array.isArray(data.balanceHistory)?data.balanceHistory:[];
+   }
    render();
   },err=>{text.textContent="Sync permission error";dot.classList.remove("online");console.error(err)});
  }else{

@@ -1,33 +1,60 @@
-STEVEN & BRANDÉ RETIREMENT PORTAL — VERSION 2.1
+STEVEN & BRANDÉ RETIREMENT PORTAL — VERSION 2.2
 
-ONLY CHANGE IN THIS RELEASE
+NEW IN VERSION 2.2 — SMART FINANCIAL TRACKING
 
-The Journey Complete widget is now calculated automatically as:
+The portal now uses actual balances instead of manually entered percentages.
 
-Journey Complete =
-(days elapsed since July 20, 2026 ÷ total days from July 20, 2026 to October 5, 2028) × 100
+TRACKED ACCOUNTS
+• Credit Cards
+• Escondido Mortgage
+• Truck Loan
+• Oceanside Mortgage
 
-The value:
-- requires no manual input,
-- recalculates whenever the portal opens or refreshes,
-- advances automatically as each calendar day passes,
-- displays 100.0% on and after October 5, 2028.
+FOR EACH ACCOUNT, ENTER:
+• Starting balance
+• Tracking start date
+• Current balance
 
-The Retirement Readiness score remains unchanged. It continues to be the average of:
-- Credit-card elimination
-- Escondido mortgage payoff
-- Truck loan payoff
+THE PORTAL CALCULATES AUTOMATICALLY:
+• Amount paid
+• Remaining balance
+• Percent complete
+• Average monthly payoff rate
+• Estimated payoff date
+• Progress bar
 
-No other interface, synchronization, authentication, wording, layout, or feature was changed.
+RETIREMENT READINESS
+Retirement Readiness is calculated automatically from:
+• Credit Cards
+• Escondido Mortgage
+• Truck Loan
+
+The Oceanside Mortgage is displayed as a future goal and is not included in Retirement Readiness.
+
+JOURNEY COMPLETE
+The time-based Journey Complete calculation from Version 2.1 remains unchanged.
+
+CLOUD DATA
+All balances synchronize through the existing Firebase portal document.
+The latest 60 dated balance updates are retained for future trend charts.
+No Firestore rule change is required if Version 2.1 is already syncing correctly.
+
+FIRST USE
+1. Sign in.
+2. Select Starting Balances.
+3. Enter each starting balance and tracking start date.
+4. Save.
+5. Select Update Financials.
+6. Enter the current balances.
+7. Save & Sync.
 
 DEPLOYMENT
-
-1. Upload all eight files inside this folder to the root of:
+1. Upload all eight files in this folder to the root of:
    https://github.com/StevenGoldstone/retirement-portal
 2. Replace the existing files.
-3. Commit the changes.
+3. Commit with: Update retirement portal to Version 2.2
 4. Wait 1–3 minutes.
 5. Open:
    https://stevengoldstone.github.io/retirement-portal/
-6. Hold Shift while clicking Reload.
-7. Confirm the header says Version 2.1.
+6. Hold Shift while clicking Reload on the Mac.
+7. Confirm the header says Version 2.2.
