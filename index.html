@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.2</title>
+<title>Steven & Brandé Retirement Portal 2.3</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.2</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.3</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -126,7 +126,7 @@ input[type=date]{color-scheme:dark}
    <h2>Shared Financial Progress</h2>
    <div>
     <button class="secondary inline" id="settingsBtn">Starting Balances</button>
-    <button class="primary inline" id="updateBtn">Update Financials</button>
+    <button class="primary inline" id="updateBtn">Record Payments</button>
    </div>
   </div>
   <div id="goals"></div>
@@ -179,8 +179,8 @@ input[type=date]{color-scheme:dark}
 
 <div class="modal" id="updateModal">
  <div class="dialog wide">
-  <h3>Update Financials</h3>
-  <p>Enter the latest balances. The portal will calculate the amount paid, progress percentage, average monthly payoff rate, estimated payoff date, and Retirement Readiness.</p>
+  <h3>Record Payments</h3>
+  <p>Enter the amount paid toward each account. The portal will subtract each payment from the current balance and update all calculations automatically.</p>
   <div id="updateFields"></div>
   <div class="error" id="updateError"></div>
   <div class="actions"><button class="secondary" onclick="closeUpdate()">Cancel</button><button class="primary" onclick="saveFinancials()">Save & Sync</button></div>
@@ -323,8 +323,8 @@ function accountFields(mode){
     </div>`;
   }
   return `<div class="sectiontitle">${m.name}</div>
-   <div class="helper">${m.future&&today<retirement?"You may enter the balance now for reference; this goal is excluded from Retirement Readiness until the payment phase begins.":"Starting balance: "+money(item.startingBalance)}</div>
-   <div class="field"><label>Current Balance</label><input id="current-${key}" inputmode="decimal" placeholder="$0" value="${item.currentBalance??""}"></div>`;
+   <div class="helper">Current balance: ${money(item.currentBalance)}</div>
+   <div class="field"><label>Amount Paid</label><input id="payment-${key}" inputmode="decimal" placeholder="$0" value=""></div>`;
  }).join("");
 }
 
@@ -366,15 +366,22 @@ window.saveFinancials=async()=>{
  const next=structuredClone(financials);
  const snapshot={date:new Date().toISOString(),balances:{}};
  for(const key of Object.keys(goalsMeta)){
-  const current=parseMoney(document.getElementById(`current-${key}`).value);
-  if(current===null && next[key].startingBalance!==null){
-   document.getElementById("updateError").textContent=`Enter a current balance for ${goalsMeta[key].name}.`;
+  const raw=document.getElementById(`payment-${key}`).value.trim();
+  const payment=raw==="" ? 0 : parseMoney(raw);
+  if(payment===null){
+   document.getElementById("updateError").textContent=`Enter a valid payment amount for ${goalsMeta[key].name}.`;
    return;
   }
-  if(current!==null && next[key].startingBalance===null){
+  if(payment>0 && (next[key].startingBalance===null || next[key].currentBalance===null)){
    document.getElementById("updateError").textContent=`Enter the starting balance for ${goalsMeta[key].name} first.`;
    return;
   }
+  const previous=Number(next[key].currentBalance);
+  if(payment>0 && payment>previous){
+   document.getElementById("updateError").textContent=`The payment for ${goalsMeta[key].name} cannot exceed its current balance of ${money(previous)}.`;
+   return;
+  }
+  const current=Number.isFinite(previous) ? Math.max(0,previous-payment) : next[key].currentBalance;
   next[key]={...next[key],currentBalance:current};
   snapshot.balances[key]=current;
  }
