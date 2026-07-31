@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.4.1</title>
+<title>Steven & Brandé Retirement Portal 2.5</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,13 +103,13 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.4.1</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.5</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
   <div class="syncbox">
    <div class="badge"><span class="dot" id="syncDot"></span><span id="syncText">Connecting…</span></div><br>
-   <button class="smallbtn" id="accountBtn">Sign in</button>
+   <button class="smallbtn" id="accountBtn" disabled>Checking sign-in…</button>
   </div>
  </div>
  <div class="counts">
@@ -202,7 +202,7 @@ input[type=date]{color-scheme:dark}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 const firebaseConfig = {
   "apiKey": "AIzaSyAiGcCtUMHsJIAulcfjxwoOOjhYiKsB8nI",
@@ -214,9 +214,9 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
-// Version 2.4.1 - ensure persistent auth on iOS Safari
-await setPersistence(auth, browserLocalPersistence).catch(console.error);
+const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence]
+});
 
 const goalsMeta = {
  creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", readiness:true},
@@ -418,6 +418,7 @@ window.signInPortal=async()=>{
 
 onAuthStateChanged(auth,user=>{
  const dot=document.getElementById("syncDot"), text=document.getElementById("syncText"), btn=document.getElementById("accountBtn");
+ btn.disabled=false;
  if(unsubscribe){unsubscribe();unsubscribe=null}
  if(user){
   dot.classList.add("online"); text.textContent="Cloud sync active"; btn.textContent="Sign out";
@@ -438,11 +439,6 @@ onAuthStateChanged(auth,user=>{
   dot.classList.remove("online"); text.textContent="Sign in to sync"; btn.textContent="Sign in";
  }
 });
-
-window.addEventListener("pageshow",()=>{ 
-  if(auth.currentUser){ return; }
-});
-
 if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js"));
 </script>
 </body>
