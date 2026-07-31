@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.4</title>
+<title>Steven & Brandé Retirement Portal 2.4.1</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.4</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.4.1</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -215,7 +215,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-await setPersistence(auth, browserLocalPersistence);
+// Version 2.4.1 - ensure persistent auth on iOS Safari
+await setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 const goalsMeta = {
  creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", readiness:true},
@@ -437,6 +438,11 @@ onAuthStateChanged(auth,user=>{
   dot.classList.remove("online"); text.textContent="Sign in to sync"; btn.textContent="Sign in";
  }
 });
+
+window.addEventListener("pageshow",()=>{ 
+  if(auth.currentUser){ return; }
+});
+
 if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js"));
 </script>
 </body>
