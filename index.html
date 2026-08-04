@@ -149,14 +149,14 @@ input[type=date]{color-scheme:dark}
    <div class="milestone"><div class="step">1</div><div><strong>Eliminate credit cards</strong><span>Reclaim monthly cash flow.</span></div></div>
    <div class="milestone"><div class="step">2</div><div><strong>Accelerate Escondido payoff</strong><span>Redirect former card payments toward principal.</span></div></div>
    <div class="milestone"><div class="step">3</div><div><strong>Pay off the truck</strong><span>Enter retirement without a vehicle loan.</span></div></div>
-   <div class="milestone"><div class="step">4</div><div><strong>Retire October 5, 2028</strong><span>Begin the next chapter with confidence.</span></div></div>
+   <div class="milestone"><div class="step">4</div><div><strong>Retire October 5, 2031</strong><span>Begin the next chapter with confidence.</span></div></div>
   </section>
  </aside>
 
  <section class="card glass">
   <h2>Today's Motivation</h2>
   <div class="quote" id="quote"></div>
-  <div class="motto">“The plan is in place. Every payment today brings October 5, 2028 a little closer.”</div>
+  <div class="motto">“The plan is in place. Every payment today brings October 5, 2031 a little closer.”</div>
  </section>
 
  <section class="card glass">
@@ -235,7 +235,7 @@ let financials = {
 let history = [];
 let unsubscribe = null;
 
-const retirement = new Date("2028-10-05T00:00:00");
+const retirement = new Date("2031-10-05T00:00:00");
 const journeyStart = new Date("2026-07-20T00:00:00");
 const now = new Date(), today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
 const remaining = Math.max(0, retirement-today), days=Math.ceil(remaining/86400000);
@@ -291,7 +291,7 @@ function render(){
   const futureLocked=m.future && today<retirement;
   if(x && m.readiness) readiness.push(x.percent);
   const pct=x ? x.percent : 0;
-  const status=futureLocked ? `<div class="future">Future goal • Payments begin October 5, 2028</div>` : "";
+  const status=futureLocked ? `<div class="future">Future goal • Payments begin October 5, 2031</div>` : "";
   const stats=x ? `
    <div class="moneygrid">
     <div class="stat"><div class="statlabel">Starting Balance</div><div class="statvalue">${money(x.start)}</div></div>
