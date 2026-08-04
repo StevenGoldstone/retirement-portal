@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6</title>
+<title>Steven & Brandé Retirement Portal 2.6.2</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.2</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -222,7 +222,7 @@ const goalsMeta = {
  creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", readiness:true},
  mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", readiness:true},
  truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", readiness:true},
- oceanside: {name:"Oceanside Mortgage", detail:"Track payments when Michael & Susan begin on October 5, 2028.", readiness:false, future:true}
+ oceanside: {name:"Oceanside Mortgage Payoff Plan", detail:"Track your accelerated mortgage payoff beginning October 5, 2028.", readiness:false, future:true}
 };
 
 const blankFinancial = () => ({startingBalance:null,currentBalance:null,startDate:""});
@@ -291,7 +291,7 @@ function render(){
   const futureLocked=m.future && today<retirement;
   if(x && m.readiness) readiness.push(x.percent);
   const pct=x ? x.percent : 0;
-  const status=futureLocked ? `<div class="future">Future goal • Payments begin October 5, 2031</div>` : "";
+  const status=futureLocked ? `<div class="future">Future goal • Mortgage paid in full by October 5, 2031</div>` : "";
   const stats=x ? `
    <div class="moneygrid">
     <div class="stat"><div class="statlabel">Starting Balance</div><div class="statvalue">${money(x.start)}</div></div>
