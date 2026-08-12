@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.2</title>
+<title>Steven & Brandé Retirement Portal 2.6.3</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,13 +103,13 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.2</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.3</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
   <div class="syncbox">
    <div class="badge"><span class="dot" id="syncDot"></span><span id="syncText">Connecting…</span></div><br>
-   <button class="smallbtn" id="accountBtn" disabled>Checking sign-in…</button>
+   <button class="smallbtn" id="accountBtn">Sign in</button>
   </div>
  </div>
  <div class="counts">
@@ -180,7 +180,7 @@ input[type=date]{color-scheme:dark}
 <div class="modal" id="updateModal">
  <div class="dialog wide">
   <h3>Record Payments</h3>
-  <p>Enter the payment amount for each account. Leave an account blank if no payment was made. The portal will subtract each payment from the current balance and update all calculations automatically.</p>
+  <p>Enter the amount paid toward each account. The portal will subtract each payment from the current balance and update all calculations automatically.</p>
   <div id="updateFields"></div>
   <div class="error" id="updateError"></div>
   <div class="actions"><button class="secondary" onclick="closeUpdate()">Cancel</button><button class="primary" onclick="saveFinancials()">Save & Sync</button></div>
@@ -215,7 +215,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = initializeAuth(app, {
-  persistence: [indexedDBLocalPersistence, browserLocalPersistence]
+ persistence: [indexedDBLocalPersistence, browserLocalPersistence]
 });
 
 const goalsMeta = {
@@ -236,20 +236,32 @@ let history = [];
 let unsubscribe = null;
 
 const retirement = new Date("2031-10-05T00:00:00");
+const oceansideStart = new Date("2028-10-05T00:00:00");
 const journeyStart = new Date("2026-07-20T00:00:00");
-const now = new Date(), today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
-const remaining = Math.max(0, retirement-today), days=Math.ceil(remaining/86400000);
-document.getElementById("days").textContent=days.toLocaleString();
-document.getElementById("months").textContent=Math.floor(days/30.4375);
-document.getElementById("weeks").textContent=Math.floor(days/7);
-const totalJourneyDays = Math.round((retirement - journeyStart) / 86400000);
-const elapsedJourneyDays = Math.max(0,Math.min(totalJourneyDays,Math.round((today - journeyStart) / 86400000)));
-const journeyComplete = totalJourneyDays > 0 ? (elapsedJourneyDays / totalJourneyDays) * 100 : 100;
-document.getElementById("journey").textContent = journeyComplete.toFixed(1) + "%";
-const h=now.getHours();
-document.getElementById("greeting").textContent=(h<12?"Good Morning":h<18?"Good Afternoon":"Good Evening")+", Steven & Brandé";
+let now = new Date();
+let today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
 const quotes=["Every extra payment buys a little more freedom.", "Discipline today creates options tomorrow.", "Financial freedom is built one decision at a time.", "Stay the course. Consistency wins.", "One payment closer. One day closer.", "Today's discipline creates tomorrow's choices.", "Retirement is built long before it begins.", "A clear plan turns hope into progress.", "The finish line gets closer every single day.", "The plan is in place. Keep moving forward."];
-document.getElementById("quote").textContent="“"+quotes[Math.floor((today-new Date(today.getFullYear(),0,0))/86400000)%quotes.length]+"”";
+
+function updateDateDependentDisplay(){
+ now = new Date();
+ today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ const remaining = Math.max(0, retirement-today);
+ const days = Math.ceil(remaining/86400000);
+ document.getElementById("days").textContent=days.toLocaleString();
+ document.getElementById("months").textContent=Math.floor(days/30.4375);
+ document.getElementById("weeks").textContent=Math.floor(days/7);
+ const totalJourneyDays = Math.round((retirement - journeyStart) / 86400000);
+ const elapsedJourneyDays = Math.max(0,Math.min(totalJourneyDays,Math.round((today - journeyStart) / 86400000)));
+ const journeyComplete = totalJourneyDays > 0 ? (elapsedJourneyDays / totalJourneyDays) * 100 : 100;
+ document.getElementById("journey").textContent = journeyComplete.toFixed(1) + "%";
+ const h=now.getHours();
+ document.getElementById("greeting").textContent=(h<12?"Good Morning":h<18?"Good Afternoon":"Good Evening")+", Steven & Brandé";
+ document.getElementById("quote").textContent="“"+quotes[Math.floor((today-new Date(today.getFullYear(),0,0))/86400000)%quotes.length]+"”";
+}
+updateDateDependentDisplay();
+setInterval(updateDateDependentDisplay,60000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) updateDateDependentDisplay(); });
+window.addEventListener("pageshow",updateDateDependentDisplay);
 
 const money = n => Number.isFinite(Number(n)) ? Number(n).toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}) : "—";
 const parseMoney = v => {
@@ -288,10 +300,10 @@ function render(){
  Object.entries(goalsMeta).forEach(([key,m])=>{
   const item=financials[key]||blankFinancial();
   const x=metrics(item);
-  const futureLocked=m.future && today<retirement;
+  const futureLocked=m.future && today<oceansideStart;
   if(x && m.readiness) readiness.push(x.percent);
   const pct=x ? x.percent : 0;
-  const status=futureLocked ? `<div class="future">Future goal • Mortgage paid in full by October 5, 2031</div>` : "";
+  const status=futureLocked ? `<div class="future">Future goal • Accelerated payoff begins October 5, 2028 • Mortgage paid in full by October 5, 2031</div>` : `<div class="future">Goal • Mortgage paid in full by October 5, 2031</div>`;
   const stats=x ? `
    <div class="moneygrid">
     <div class="stat"><div class="statlabel">Starting Balance</div><div class="statvalue">${money(x.start)}</div></div>
@@ -325,10 +337,8 @@ function accountFields(mode){
     </div>`;
   }
   return `<div class="sectiontitle">${m.name}</div>
-   <div class="helper">${m.future&&today<retirement
-     ?"You may record payments now for reference; this goal remains excluded from Retirement Readiness until the payment phase begins."
-     :"Current balance: "+money(item.currentBalance)}</div>
-   <div class="field"><label>Payment Amount</label><input id="payment-${key}" inputmode="decimal" placeholder="$0"></div>`;
+   <div class="helper">Current balance: ${money(item.currentBalance)}</div>
+   <div class="field"><label>Amount Paid</label><input id="payment-${key}" inputmode="decimal" placeholder="$0" value=""></div>`;
  }).join("");
 }
 
@@ -368,47 +378,27 @@ window.closeUpdate=()=>document.getElementById("updateModal").classList.remove("
 window.saveFinancials=async()=>{
  if(!auth.currentUser){document.getElementById("updateError").textContent="Please sign in first.";return}
  const next=structuredClone(financials);
- const snapshot={date:new Date().toISOString(),payments:{},balances:{}};
- let enteredAnyPayment=false;
-
+ const snapshot={date:new Date().toISOString(),balances:{}};
  for(const key of Object.keys(goalsMeta)){
   const raw=document.getElementById(`payment-${key}`).value.trim();
-
-  if(raw===""){
-   snapshot.payments[key]=0;
-   snapshot.balances[key]=next[key].currentBalance;
-   continue;
-  }
-
-  const payment=parseMoney(raw);
-
-  if(payment===null || payment<=0){
-   document.getElementById("updateError").textContent=`Enter a valid payment amount greater than $0 for ${goalsMeta[key].name}.`;
+  const payment=raw==="" ? 0 : parseMoney(raw);
+  if(payment===null){
+   document.getElementById("updateError").textContent=`Enter a valid payment amount for ${goalsMeta[key].name}.`;
    return;
   }
-
-  if(next[key].startingBalance===null || next[key].currentBalance===null){
+  if(payment>0 && (next[key].startingBalance===null || next[key].currentBalance===null)){
    document.getElementById("updateError").textContent=`Enter the starting balance for ${goalsMeta[key].name} first.`;
    return;
   }
-
-  if(payment>Number(next[key].currentBalance)){
-   document.getElementById("updateError").textContent=`The payment for ${goalsMeta[key].name} cannot be greater than its current balance.`;
+  const previous=Number(next[key].currentBalance);
+  if(payment>0 && payment>previous){
+   document.getElementById("updateError").textContent=`The payment for ${goalsMeta[key].name} cannot exceed its current balance of ${money(previous)}.`;
    return;
   }
-
-  const newBalance=Math.max(0,Number(next[key].currentBalance)-payment);
-  next[key]={...next[key],currentBalance:newBalance};
-  snapshot.payments[key]=payment;
-  snapshot.balances[key]=newBalance;
-  enteredAnyPayment=true;
+  const current=Number.isFinite(previous) ? Math.max(0,previous-payment) : next[key].currentBalance;
+  next[key]={...next[key],currentBalance:current};
+  snapshot.balances[key]=current;
  }
-
- if(!enteredAnyPayment){
-  document.getElementById("updateError").textContent="Enter at least one payment amount.";
-  return;
- }
-
  try{
   const newHistory=[...history,snapshot].slice(-60);
   await setDoc(doc(db,"portals","retirement"),{
@@ -447,7 +437,6 @@ window.signInPortal=async()=>{
 
 onAuthStateChanged(auth,user=>{
  const dot=document.getElementById("syncDot"), text=document.getElementById("syncText"), btn=document.getElementById("accountBtn");
- btn.disabled=false;
  if(unsubscribe){unsubscribe();unsubscribe=null}
  if(user){
   dot.classList.add("online"); text.textContent="Cloud sync active"; btn.textContent="Sign out";
