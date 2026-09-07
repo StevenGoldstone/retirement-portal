@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.3.5</title>
+<title>Steven & Brandé Retirement Portal 2.6.3.6</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.3.5</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.3.6</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -265,9 +265,34 @@ function encodeFirestoreValue(value){
  return {stringValue:String(value)};
 }
 
+
+function setDiag(message){
+ const el=document.getElementById("diagText");
+ if(el) el.textContent=message;
+}
+
 async function firebaseIdToken(){
- if(!auth.currentUser) throw new Error("Please sign in first.");
- return await auth.currentUser.getIdToken();
+ if(!auth.currentUser){
+  setDiag("AUTH: no currentUser\nREST READ: not attempted");
+  throw new Error("Please sign in first.");
+ }
+ try{
+  const token=await auth.currentUser.getIdToken();
+  setDiag(
+   "AUTH: signed in\n"+
+   "USER: "+(auth.currentUser.email || "(no email)")+"\n"+
+   "TOKEN: acquired\n"+
+   "REST READ: starting…"
+  );
+  return token;
+ }catch(err){
+  setDiag(
+   "AUTH: signed in\n"+
+   "USER: "+(auth.currentUser.email || "(no email)")+"\n"+
+   "TOKEN ERROR: "+(err?.name || "Error")+" | "+(err?.code || "")+" | "+(err?.message || String(err))
+  );
+  throw err;
+ }
 }
 
 async function fetchWithTimeout(url, options={}, timeoutMs=15000){
@@ -282,14 +307,41 @@ async function fetchWithTimeout(url, options={}, timeoutMs=15000){
 
 async function restReadRetirement(){
  const token=await firebaseIdToken();
- const response=await fetchWithTimeout(firestoreDocUrl,{
-  headers:{Authorization:`Bearer ${token}`}
- });
+ let response;
+ try{
+  response=await fetchWithTimeout(firestoreDocUrl,{
+   headers:{Authorization:`Bearer ${token}`}
+  });
+ }catch(err){
+  setDiag(
+   "AUTH: signed in\n"+
+   "TOKEN: acquired\n"+
+   "REST FETCH ERROR: "+(err?.name || "Error")+" | "+(err?.message || String(err))+"\n"+
+   "URL: "+firestoreDocUrl
+  );
+  throw err;
+ }
  if(!response.ok){
   const detail=await response.text();
+  setDiag(
+   "AUTH: signed in\n"+
+   "TOKEN: acquired\n"+
+   "REST HTTP ERROR: "+response.status+" "+response.statusText+"\n"+
+   "BODY: "+detail.slice(0,1200)
+  );
   throw new Error(`Cloud read failed (${response.status}): ${detail}`);
  }
- return decodeFirestoreDocument(await response.json());
+ const body=await response.json();
+ const data=decodeFirestoreDocument(body);
+ setDiag(
+  "AUTH: signed in\n"+
+  "TOKEN: acquired\n"+
+  "REST HTTP: "+response.status+" OK\n"+
+  "DOCUMENT: "+(body?.name || "(unknown)")+"\n"+
+  "HAS FINANCIALS: "+Boolean(data?.financials)+"\n"+
+  "FINANCIAL KEYS: "+Object.keys(data?.financials || {}).join(", ")
+ );
+ return data;
 }
 
 async function restPatchRetirement(fields){
@@ -589,12 +641,14 @@ onAuthStateChanged(auth,async user=>{
   dot.classList.remove("online");
   textEl.textContent="Loading retirement data…";
   btn.textContent="Sign out";
+  setDiag("AUTH: signed in\nUSER: "+(user.email || "(no email)")+"\nTOKEN/REST: pending…");
   await loadRetirementFromCloud();
   startRestSync();
  }else{
   dot.classList.remove("online");
   textEl.textContent="Sign in to sync";
   btn.textContent="Sign in";
+  setDiag("AUTH: signed out\nWaiting for sign-in…");
  }
 });
 
@@ -615,6 +669,16 @@ if("serviceWorker" in navigator){
  });
 }
 </script>
+
+
+<div id="diagPanel" style="
+ position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;
+ background:rgba(0,0,0,.92);color:#fff;border:1px solid #777;
+ border-radius:12px;padding:12px;font:13px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
+ white-space:pre-wrap;word-break:break-word;max-height:34vh;overflow:auto;">
+ <strong>2.6.3.6 CONNECTION DIAGNOSTIC</strong>
+ <div id="diagText">Waiting for authentication and cloud read…</div>
+</div>
 
 </body>
 </html>
