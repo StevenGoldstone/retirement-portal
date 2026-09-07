@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.3.3</title>
+<title>Steven & Brandé Retirement Portal 2.6.3.4</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.3.3</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.3.4</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -200,6 +200,33 @@ input[type=date]{color-scheme:dark}
 </div>
 
 <script type="module">
+const diagLines=[];
+function diag(label,value){
+ try{
+  const rendered = typeof value === "string" ? value : JSON.stringify(value);
+  diagLines.push(label + ": " + rendered);
+ }catch(e){
+  diagLines.push(label + ": [unprintable]");
+ }
+ const el=document.getElementById("diagText");
+ if(el) el.textContent=diagLines.join("\n");
+}
+function summarizeFinancials(data){
+ const f=data && data.financials;
+ if(!f) return {present:false,keys:[]};
+ const result={present:true,keys:Object.keys(f)};
+ for(const k of ["creditCards","mortgage","truck","oceanside"]){
+  const v=f[k];
+  result[k]=v ? {
+   startingBalance:v.startingBalance ?? null,
+   currentBalance:v.currentBalance ?? null,
+   startDate:v.startDate ?? null,
+   manualMonthlyRate:v.manualMonthlyRate ?? null
+  } : null;
+ }
+ return result;
+}
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getFirestore, doc, getDoc, onSnapshot, setDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
@@ -436,6 +463,7 @@ window.signInPortal=async()=>{
 };
 
 onAuthStateChanged(auth,async user=>{
+ diag("AUTH", user ? {signedIn:true,uid:user.uid,email:user.email} : {signedIn:false});
  const dot=document.getElementById("syncDot"), text=document.getElementById("syncText"), btn=document.getElementById("accountBtn");
  if(unsubscribe){unsubscribe();unsubscribe=null}
  if(user){
@@ -444,8 +472,10 @@ onAuthStateChanged(auth,async user=>{
 
   try{
    const snap=await getDoc(ref);
+   diag("GETDOC", {exists:snap.exists()});
    if(snap.exists()){
     const data=snap.data();
+    diag("GETDOC FINANCIALS", summarizeFinancials(data));
     if(data.financials){
      for(const key of Object.keys(goalsMeta)){
       financials[key]={...blankFinancial(),...(data.financials[key]||{})};
@@ -460,12 +490,15 @@ onAuthStateChanged(auth,async user=>{
    text.textContent="Cloud read error";
    dot.classList.remove("online");
    console.error("Initial Firestore read failed:",err);
+   diag("GETDOC ERROR", {name:err?.name||"",code:err?.code||"",message:err?.message||String(err)});
    render();
   }
 
   unsubscribe=onSnapshot(ref,snap=>{
+   diag("SNAPSHOT", {exists:snap.exists(),fromCache:snap.metadata?.fromCache,hasPendingWrites:snap.metadata?.hasPendingWrites});
    if(snap.exists()){
     const data=snap.data();
+    diag("SNAPSHOT FINANCIALS", summarizeFinancials(data));
     if(data.financials){
       for(const key of Object.keys(goalsMeta)){
         financials[key]={...blankFinancial(),...(data.financials[key]||{})};
@@ -476,7 +509,12 @@ onAuthStateChanged(auth,async user=>{
    render();
    dot.classList.add("online");
    text.textContent="Cloud sync active";
-  },err=>{text.textContent="Sync permission error";dot.classList.remove("online");console.error(err)});
+  },err=>{
+   text.textContent="Sync permission error";
+   dot.classList.remove("online");
+   console.error(err);
+   diag("SNAPSHOT ERROR", {name:err?.name||"",code:err?.code||"",message:err?.message||String(err)});
+  });
  }else{
   dot.classList.remove("online"); text.textContent="Sign in to sync"; btn.textContent="Sign in";
  }
@@ -493,5 +531,15 @@ if("serviceWorker" in navigator){
  });
 }
 </script>
+
+<div id="diagPanel" style="
+ position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;
+ background:rgba(0,0,0,.92);color:#fff;border:1px solid #888;border-radius:10px;
+ padding:10px 12px;font:12px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
+ max-height:34vh;overflow:auto;white-space:pre-wrap;word-break:break-word;">
+<strong>2.6.3.4 FIREBASE DIAGNOSTIC</strong>
+<div id="diagText">Waiting for Firebase authentication…</div>
+</div>
+
 </body>
 </html>
