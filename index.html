@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.3.6</title>
+<title>Steven & Brandé Retirement Portal 2.6.3.7</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.3.6</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.3.7</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -295,21 +295,15 @@ async function firebaseIdToken(){
  }
 }
 
-async function fetchWithTimeout(url, options={}, timeoutMs=15000){
- const controller=new AbortController();
- const timer=setTimeout(()=>controller.abort(),timeoutMs);
- try{
-  return await fetch(url,{...options,signal:controller.signal,cache:"no-store"});
- }finally{
-  clearTimeout(timer);
- }
+async function fetchCloud(url, options={}){
+ return await fetch(url,{...options,cache:"no-store"});
 }
 
 async function restReadRetirement(){
  const token=await firebaseIdToken();
  let response;
  try{
-  response=await fetchWithTimeout(firestoreDocUrl,{
+  response=await fetchCloud(firestoreDocUrl,{
    headers:{Authorization:`Bearer ${token}`}
   });
  }catch(err){
@@ -352,7 +346,7 @@ async function restPatchRetirement(fields){
  const body={fields:{}};
  for(const [k,v] of Object.entries(fields)) body.fields[k]=encodeFirestoreValue(v);
 
- const response=await fetchWithTimeout(`${firestoreDocUrl}?${masks}`,{
+ const response=await fetchCloud(`${firestoreDocUrl}?${masks}`,{
   method:"PATCH",
   headers:{
    Authorization:`Bearer ${token}`,
@@ -676,7 +670,7 @@ if("serviceWorker" in navigator){
  background:rgba(0,0,0,.92);color:#fff;border:1px solid #777;
  border-radius:12px;padding:12px;font:13px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
  white-space:pre-wrap;word-break:break-word;max-height:34vh;overflow:auto;">
- <strong>2.6.3.6 CONNECTION DIAGNOSTIC</strong>
+ <strong>2.6.3.7 CONNECTION DIAGNOSTIC</strong>
  <div id="diagText">Waiting for authentication and cloud read…</div>
 </div>
 
