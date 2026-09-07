@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.5</title>
+<title>Steven & Brandé Retirement Portal 2.6.6</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -106,7 +106,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.5</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.6</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -224,9 +224,9 @@ const auth = initializeAuth(app, {
 
 const goalsMeta = {
  creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", goalText:"Credit Cards paid by Sept 2026", readiness:true},
- mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", goalText:"Mortgage paid in full by October 5, 2028", readiness:true},
- truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", goalText:"Truck Loan paid in full by October 5, 2031", readiness:true},
- oceanside: {name:"Oceanside Mortgage Payoff Plan", detail:"Track your accelerated mortgage payoff beginning October 5, 2028.", goalText:"Mortgage paid in full by October 5, 2031", readiness:false, future:true}
+ mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", goalText:"Mortgage paid in full by October 5, 2028", interestRate:"5.25%", readiness:true},
+ truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", goalText:"Truck Loan paid in full by October 5, 2031", interestRate:"6.99%", readiness:true},
+ oceanside: {name:"Oceanside Mortgage Payoff Plan", detail:"Track your accelerated mortgage payoff beginning October 5, 2028.", goalText:"Mortgage paid in full by October 5, 2031", interestRate:"3.25%", readiness:false, future:true}
 };
 
 const blankFinancial = () => ({startingBalance:null,currentBalance:null,startDate:"",manualMonthlyRate:null});
@@ -317,6 +317,7 @@ function render(){
     <div class="stat"><div class="statlabel">Monthly Payoff Rate</div><input class="statinput" id="inline-rate-${key}" inputmode="decimal" value="${x.monthlyRate??""}" placeholder="$0"></div>
     <div class="stat"><div class="statlabel">Tracking Since</div><div class="statvalue">${dateText(item.startDate)}</div></div>
     <div class="stat"><div class="statlabel">Estimated Payoff</div><div class="statvalue">${x.payoffDate||"—"}</div></div>
+    ${m.interestRate ? `<div class="stat"><div class="statlabel">Interest Rate</div><div class="statvalue">${m.interestRate}</div></div>` : ""}
    </div>
    <button class="saveinline" onclick="saveInlineValues('${key}')">Save Current Balance / Monthly Rate</button>` :
    `<div class="empty">Add a starting balance, current balance, and tracking start date to activate automatic calculations for this account.</div>`;
