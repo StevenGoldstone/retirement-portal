@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.10</title>
+<title>Steven & Brandé Retirement Portal 2.6.3</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -79,9 +79,6 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 .stat{padding:12px;border-radius:13px;background:rgba(255,255,255,.055);border:1px solid var(--line)}
 .statlabel{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em}
 .statvalue{font-size:17px;font-weight:850;margin-top:5px}
-.statinput{width:100%;margin-top:5px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--text);padding:8px 9px;font-weight:850}
-.statinput:focus{outline:2px solid rgba(121,216,255,.35);outline-offset:1px}
-.saveinline{margin-top:10px;padding:8px 12px;border-radius:10px;border:none;background:var(--gold);color:#172331;font-weight:850}
 .goalactions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .future{color:var(--gold);font-weight:800;font-size:13px;margin-top:4px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
@@ -106,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.10</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.3</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -128,7 +125,7 @@ input[type=date]{color-scheme:dark}
   <div class="toolbar">
    <h2>Shared Financial Progress</h2>
    <div>
-    <button class="secondary inline" id="settingsBtn">Account Settings</button>
+    <button class="secondary inline" id="settingsBtn">Starting Balances</button>
     <button class="primary inline" id="updateBtn">Record Payments</button>
    </div>
   </div>
@@ -152,8 +149,7 @@ input[type=date]{color-scheme:dark}
    <div class="milestone"><div class="step">1</div><div><strong>Eliminate credit cards</strong><span>Reclaim monthly cash flow.</span></div></div>
    <div class="milestone"><div class="step">2</div><div><strong>Accelerate Escondido payoff</strong><span>Redirect former card payments toward principal.</span></div></div>
    <div class="milestone"><div class="step">3</div><div><strong>Pay off the truck</strong><span>Enter retirement without a vehicle loan.</span></div></div>
-   <div class="milestone"><div class="step">4</div><div><strong>Pay off Oceanside Mortgage</strong><span>Starting October 2028, divert the monthly Escondido mortgage payment to the Oceanside condo once the Escondido mortgage is paid off, increasing the Oceanside mortgage payment to approximately $5,913.06 per month to pay the mortgage in full by October 5, 2031.</span></div></div>
-    <div class="milestone"><div class="step">5</div><div><strong>Retire October 5, 2031</strong><span>Begin the next chapter with confidence.</span></div></div>
+   <div class="milestone"><div class="step">4</div><div><strong>Retire October 5, 2031</strong><span>Begin the next chapter with confidence.</span></div></div>
   </section>
  </aside>
 
@@ -173,11 +169,11 @@ input[type=date]{color-scheme:dark}
 
 <div class="modal" id="settingsModal">
  <div class="dialog wide">
-  <h3>Account Settings</h3>
-  <p>Edit starting balances, current balances, tracking dates, and monthly payoff rates. Current Balance and Monthly Payoff Rate can also be edited directly on the main portal.</p>
+  <h3>Starting Balances</h3>
+  <p>Enter each balance at the beginning of tracking and the date tracking began. These values normally only need to be entered once.</p>
   <div id="settingsFields"></div>
   <div class="error" id="settingsError"></div>
-  <div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="primary" onclick="saveSettings()">Save Account Settings</button></div>
+  <div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="primary" onclick="saveSettings()">Save Starting Balances</button></div>
  </div>
 </div>
 
@@ -205,8 +201,8 @@ input[type=date]{color-scheme:dark}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { initializeFirestore, doc, onSnapshot, getDocFromServer, setDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 const firebaseConfig = {
   "apiKey": "AIzaSyAiGcCtUMHsJIAulcfjxwoOOjhYiKsB8nI",
@@ -217,21 +213,19 @@ const firebaseConfig = {
   "appId": "1:210774227726:web:ac66d3faebfc952d43755f"
 };
 const app = initializeApp(firebaseConfig);
-const db = initializeFirestore(app,{
-  experimentalAutoDetectLongPolling:true
-});
+const db = getFirestore(app);
 const auth = initializeAuth(app, {
  persistence: [indexedDBLocalPersistence, browserLocalPersistence]
 });
 
 const goalsMeta = {
- creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", goalText:"Credit Cards paid by Sept 2026", readiness:true},
- mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", goalText:"Mortgage paid in full by October 5, 2028", interestRate:"5.25%", readiness:true},
- truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", goalText:"Truck Loan paid in full by October 5, 2031", interestRate:"6.99%", readiness:true},
- oceanside: {name:"Oceanside Mortgage Payoff Plan", detail:"Track your accelerated mortgage payoff beginning October 5, 2028.", goalText:"Mortgage paid in full by October 5, 2031", interestRate:"3.25%", readiness:false, future:true}
+ creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", readiness:true},
+ mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", readiness:true},
+ truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", readiness:true},
+ oceanside: {name:"Oceanside Mortgage Payoff Plan", detail:"Track your accelerated mortgage payoff beginning October 5, 2028.", readiness:false, future:true}
 };
 
-const blankFinancial = () => ({startingBalance:null,currentBalance:null,startDate:"",manualMonthlyRate:null});
+const blankFinancial = () => ({startingBalance:null,currentBalance:null,startDate:""});
 let financials = {
  creditCards: blankFinancial(),
  mortgage: blankFinancial(),
@@ -282,21 +276,20 @@ function metrics(item){
  if(!Number.isFinite(start)||start<=0||!Number.isFinite(current)||current<0) return null;
  const amountPaid=Math.max(0,start-current);
  const percent=Math.max(0,Math.min(100,(amountPaid/start)*100));
- let calculatedMonthlyRate=null, payoffDate=null;
+ let monthlyRate=null, payoffDate=null;
  if(item.startDate){
   const sd=new Date(item.startDate+"T00:00:00");
   const elapsed=monthsBetween(sd,today);
-  if(elapsed>=0.25 && amountPaid>0) calculatedMonthlyRate=amountPaid/elapsed;
- }
- const hasManualRate=item?.manualMonthlyRate!==null && item?.manualMonthlyRate!==undefined && item?.manualMonthlyRate!=="";
- const manualRate=hasManualRate ? Number(item.manualMonthlyRate) : null;
- const monthlyRate=(hasManualRate && Number.isFinite(manualRate) && manualRate>=0) ? manualRate : calculatedMonthlyRate;
- if(current===0) payoffDate="Paid off";
- else if(monthlyRate>0){
-  const monthsLeft=current/monthlyRate;
-  const projected=new Date(today);
-  projected.setDate(projected.getDate()+Math.round(monthsLeft*30.4375));
-  payoffDate=projected.toLocaleDateString("en-US",{month:"short",year:"numeric"});
+  if(elapsed>=0.25 && amountPaid>0){
+   monthlyRate=amountPaid/elapsed;
+   if(current===0) payoffDate="Paid off";
+   else if(monthlyRate>0){
+    const monthsLeft=current/monthlyRate;
+    const projected=new Date(today);
+    projected.setDate(projected.getDate()+Math.round(monthsLeft*30.4375));
+    payoffDate=projected.toLocaleDateString("en-US",{month:"short",year:"numeric"});
+   }
+  }
  }
  return {start,current,amountPaid,percent,monthlyRate,payoffDate};
 }
@@ -310,18 +303,16 @@ function render(){
   const futureLocked=m.future && today<oceansideStart;
   if(x && m.readiness) readiness.push(x.percent);
   const pct=x ? x.percent : 0;
-  const status=futureLocked ? `<div class="future">Future goal • Accelerated payoff begins October 5, 2028 • ${m.goalText}</div>` : `<div class="future">Goal • ${m.goalText}</div>`;
+  const status=futureLocked ? `<div class="future">Future goal • Accelerated payoff begins October 5, 2028 • Mortgage paid in full by October 5, 2031</div>` : `<div class="future">Goal • Mortgage paid in full by October 5, 2031</div>`;
   const stats=x ? `
    <div class="moneygrid">
     <div class="stat"><div class="statlabel">Starting Balance</div><div class="statvalue">${money(x.start)}</div></div>
-    <div class="stat"><div class="statlabel">Current Balance</div><input class="statinput" id="inline-current-${key}" inputmode="decimal" value="${x.current}"></div>
+    <div class="stat"><div class="statlabel">Current Balance</div><div class="statvalue">${money(x.current)}</div></div>
     <div class="stat"><div class="statlabel">Amount Paid</div><div class="statvalue">${money(x.amountPaid)}</div></div>
-    <div class="stat"><div class="statlabel">Monthly Payoff Rate</div><input class="statinput" id="inline-rate-${key}" inputmode="decimal" value="${x.monthlyRate??""}" placeholder="$0"></div>
+    <div class="stat"><div class="statlabel">Monthly Payoff Rate</div><div class="statvalue">${x.monthlyRate?money(x.monthlyRate)+"/mo":"—"}</div></div>
     <div class="stat"><div class="statlabel">Tracking Since</div><div class="statvalue">${dateText(item.startDate)}</div></div>
     <div class="stat"><div class="statlabel">Estimated Payoff</div><div class="statvalue">${x.payoffDate||"—"}</div></div>
-    ${m.interestRate ? `<div class="stat"><div class="statlabel">Interest Rate</div><div class="statvalue">${m.interestRate}</div></div>` : ""}
-   </div>
-   <button class="saveinline" onclick="saveInlineValues('${key}')">Save Current Balance / Monthly Rate</button>` :
+   </div>` :
    `<div class="empty">Add a starting balance, current balance, and tracking start date to activate automatic calculations for this account.</div>`;
   host.insertAdjacentHTML("beforeend",`<div class="goal">
    <div class="goalhead"><div><div class="goalname">${m.name}</div><div class="goalmeta">${m.detail}</div>${status}</div><div class="pct">${x?pct.toFixed(1):"0.0"}%</div></div>
@@ -335,36 +326,6 @@ function render(){
 }
 render();
 
-window.saveInlineValues=async(key)=>{
- if(!auth.currentUser){alert("Please sign in first.");return}
- const currentEl=document.getElementById(`inline-current-${key}`);
- const rateEl=document.getElementById(`inline-rate-${key}`);
- const current=parseMoney(currentEl?.value ?? "");
- const rate=parseMoney(rateEl?.value ?? "");
- const start=Number(financials[key]?.startingBalance);
-
- if(current===null){
-  alert(`Enter a valid current balance for ${goalsMeta[key].name}.`);
-  return;
- }
- if(Number.isFinite(start) && start>0 && current>start){
-  alert(`The current balance for ${goalsMeta[key].name} cannot exceed its starting balance of ${money(start)}.`);
-  return;
- }
-
- const next=structuredClone(financials);
- next[key]={...next[key],currentBalance:current,manualMonthlyRate:rate};
- try{
-  await setDoc(doc(db,"portals","retirement"),{
-   financials:next,
-   updatedAt:serverTimestamp(),
-   updatedBy:auth.currentUser.email
-  },{merge:true});
- }catch(e){
-  alert("Unable to save: "+e.message);
- }
-};
-
 function accountFields(mode){
  return Object.entries(goalsMeta).map(([key,m])=>{
   const item=financials[key]||blankFinancial();
@@ -372,9 +333,7 @@ function accountFields(mode){
    return `<div class="sectiontitle">${m.name}</div>
     <div class="formgrid">
      <div class="field"><label>Starting Balance</label><input id="start-${key}" inputmode="decimal" placeholder="$0" value="${item.startingBalance??""}"></div>
-     <div class="field"><label>Current Balance</label><input id="current-${key}" inputmode="decimal" placeholder="$0" value="${item.currentBalance??""}"></div>
      <div class="field"><label>Tracking Start Date</label><input id="date-${key}" type="date" value="${item.startDate||""}"></div>
-     <div class="field"><label>Monthly Payoff Rate</label><input id="rate-${key}" inputmode="decimal" placeholder="$0" value="${item.manualMonthlyRate??""}"></div>
     </div>`;
   }
   return `<div class="sectiontitle">${m.name}</div>
@@ -395,18 +354,12 @@ window.saveSettings=async()=>{
  const next=structuredClone(financials);
  for(const key of Object.keys(goalsMeta)){
   const start=parseMoney(document.getElementById(`start-${key}`).value);
-  const current=parseMoney(document.getElementById(`current-${key}`).value);
-  const rate=parseMoney(document.getElementById(`rate-${key}`).value);
   const date=document.getElementById(`date-${key}`).value;
   if((start===null)!=(date==="")){
    document.getElementById("settingsError").textContent=`For ${goalsMeta[key].name}, enter both a starting balance and tracking start date, or leave both blank.`;
    return;
   }
-  if(start!==null && current!==null && current>start){
-   document.getElementById("settingsError").textContent=`For ${goalsMeta[key].name}, current balance cannot exceed starting balance.`;
-   return;
-  }
-  next[key]={...next[key],startingBalance:start,currentBalance:current,startDate:date,manualMonthlyRate:rate};
+  next[key]={...next[key],startingBalance:start,startDate:date};
   if(next[key].currentBalance===null && start!==null) next[key].currentBalance=start;
  }
  try{
@@ -482,164 +435,26 @@ window.signInPortal=async()=>{
 }
 };
 
-
-function decodeFirestoreValue(v){
- if(!v || typeof v!=="object") return null;
- if("nullValue" in v) return null;
- if("stringValue" in v) return v.stringValue;
- if("booleanValue" in v) return v.booleanValue;
- if("integerValue" in v) return Number(v.integerValue);
- if("doubleValue" in v) return Number(v.doubleValue);
- if("timestampValue" in v) return v.timestampValue;
- if("referenceValue" in v) return v.referenceValue;
- if("geoPointValue" in v) return v.geoPointValue;
- if("bytesValue" in v) return v.bytesValue;
- if("arrayValue" in v){
-  return (v.arrayValue.values||[]).map(decodeFirestoreValue);
- }
- if("mapValue" in v){
-  return decodeFirestoreFields(v.mapValue.fields||{});
- }
- return null;
-}
-
-function decodeFirestoreFields(fields){
- const out={};
- for(const [key,value] of Object.entries(fields||{})){
-  out[key]=decodeFirestoreValue(value);
- }
- return out;
-}
-
-async function loadRetirementViaRest(user){
- const token=await getIdToken(user,true);
- const url=`https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/portals/retirement`;
- const controller=new AbortController();
- const timeout=setTimeout(()=>controller.abort(),15000);
- try{
-  const response=await fetch(url,{
-   method:"GET",
-   headers:{
-    "Authorization":`Bearer ${token}`,
-    "Accept":"application/json"
-   },
-   cache:"no-store",
-   signal:controller.signal
-  });
-  if(!response.ok){
-   let detail="";
-   try{
-    const body=await response.json();
-    detail=body?.error?.message||"";
-   }catch(_){}
-   throw new Error(`REST ${response.status}${detail?": "+detail:""}`);
-  }
-  const body=await response.json();
-  return decodeFirestoreFields(body.fields||{});
- }finally{
-  clearTimeout(timeout);
- }
-}
-
-function applyCloudData(data){
- if(data?.financials){
-  for(const key of Object.keys(goalsMeta)){
-   financials[key]={...blankFinancial(),...(data.financials[key]||{})};
-  }
- }
- history=Array.isArray(data?.balanceHistory)?data.balanceHistory:[];
- render();
-}
-
-onAuthStateChanged(auth,async user=>{
+onAuthStateChanged(auth,user=>{
  const dot=document.getElementById("syncDot"), text=document.getElementById("syncText"), btn=document.getElementById("accountBtn");
  if(unsubscribe){unsubscribe();unsubscribe=null}
-
  if(user){
-  dot.classList.remove("online");
-  text.textContent="Loading retirement data…";
-  btn.textContent="Sign out";
+  dot.classList.add("online"); text.textContent="Cloud sync active"; btn.textContent="Sign out";
   const ref=doc(db,"portals","retirement");
-
-  const loadFallback=async(reason)=>{
-   try{
-    text.textContent="Using mobile-safe cloud fallback…";
-    const data=await loadRetirementViaRest(user);
-    if(!data || !data.financials){
-     text.textContent="Fallback connected • financial data missing";
-     dot.classList.remove("online");
-     console.error("REST fallback loaded the retirement document but found no financials object.",data);
-     render();
-     return false;
+  unsubscribe=onSnapshot(ref,snap=>{
+   if(snap.exists()){
+    const data=snap.data();
+    if(data.financials){
+      for(const key of Object.keys(goalsMeta)){
+        financials[key]={...blankFinancial(),...(data.financials[key]||{})};
+      }
     }
-    applyCloudData(data);
-    dot.classList.add("online");
-    text.textContent="Cloud data loaded • mobile fallback";
-    console.warn("Firestore SDK read was unavailable; retirement data loaded through authenticated HTTPS fallback.",reason);
-    return true;
-   }catch(restErr){
-    text.textContent="Cloud fallback error";
-    dot.classList.remove("online");
-    console.error("Authenticated Firestore REST fallback failed:",restErr);
-    render();
-    return false;
+    history=Array.isArray(data.balanceHistory)?data.balanceHistory:[];
    }
-  };
-
-  try{
-   // Normal Firebase/Firestore path remains the primary path.
-   const serverSnap=await getDocFromServer(ref);
-
-   if(!serverSnap.exists()){
-    text.textContent="Cloud record not found";
-    console.error("Retirement document portals/retirement was not found on the Firebase server.");
-    render();
-    return;
-   }
-
-   const data=serverSnap.data();
-
-   if(!data.financials){
-    text.textContent="Cloud record loaded • financial data missing";
-    console.error("Retirement document loaded, but it does not contain a financials object.",data);
-    render();
-   }else{
-    applyCloudData(data);
-    dot.classList.add("online");
-    text.textContent="Cloud data loaded";
-   }
-
-   // Keep the existing normal Firestore live listener on devices where it works.
-   unsubscribe=onSnapshot(ref,snap=>{
-    if(!snap.exists()){
-     text.textContent="Cloud record not found";
-     dot.classList.remove("online");
-     return;
-    }
-
-    const liveData=snap.data();
-    if(liveData.financials){
-     applyCloudData(liveData);
-     dot.classList.add("online");
-     text.textContent="Cloud sync active";
-    }else{
-     text.textContent="Cloud connected • financial data missing";
-     dot.classList.remove("online");
-     console.error("Live retirement document has no financials object.",liveData);
-    }
-   },async err=>{
-    console.error("Firebase retirement sync error:",err);
-    await loadFallback(err);
-   });
-
-  }catch(err){
-   console.error("Firebase server read error:",err);
-   await loadFallback(err);
-  }
+   render();
+  },err=>{text.textContent="Sync permission error";dot.classList.remove("online");console.error(err)});
  }else{
-  dot.classList.remove("online");
-  text.textContent="Sign in to sync";
-  btn.textContent="Sign in";
+  dot.classList.remove("online"); text.textContent="Sign in to sync"; btn.textContent="Sign in";
  }
 });
 if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js"));
