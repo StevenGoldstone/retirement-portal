@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.3</title>
+<title>Steven & Brandé Retirement Portal 2.6.3.1</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.3</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.3.1</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -457,7 +457,17 @@ onAuthStateChanged(auth,user=>{
   dot.classList.remove("online"); text.textContent="Sign in to sync"; btn.textContent="Sign in";
  }
 });
-if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js"));
+if("serviceWorker" in navigator){
+ window.addEventListener("load",async()=>{
+  try{
+   const registrations=await navigator.serviceWorker.getRegistrations();
+   await Promise.all(registrations.map(reg=>reg.unregister()));
+   console.log("Retirement Portal service worker disabled for clean live loading.");
+  }catch(e){
+   console.warn("Service worker cleanup could not complete:",e);
+  }
+ });
+}
 </script>
 </body>
 </html>
