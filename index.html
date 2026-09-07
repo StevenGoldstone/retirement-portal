@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.4</title>
+<title>Steven & Brandé Retirement Portal 2.6.5</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -79,6 +79,9 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 .stat{padding:12px;border-radius:13px;background:rgba(255,255,255,.055);border:1px solid var(--line)}
 .statlabel{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em}
 .statvalue{font-size:17px;font-weight:850;margin-top:5px}
+.statinput{width:100%;margin-top:5px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--text);padding:8px 9px;font-weight:850}
+.statinput:focus{outline:2px solid rgba(121,216,255,.35);outline-offset:1px}
+.saveinline{margin-top:10px;padding:8px 12px;border-radius:10px;border:none;background:var(--gold);color:#172331;font-weight:850}
 .goalactions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .future{color:var(--gold);font-weight:800;font-size:13px;margin-top:4px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
@@ -103,7 +106,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.4</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.5</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -125,7 +128,7 @@ input[type=date]{color-scheme:dark}
   <div class="toolbar">
    <h2>Shared Financial Progress</h2>
    <div>
-    <button class="secondary inline" id="settingsBtn">Starting Balances</button>
+    <button class="secondary inline" id="settingsBtn">Account Settings</button>
     <button class="primary inline" id="updateBtn">Record Payments</button>
    </div>
   </div>
@@ -170,11 +173,11 @@ input[type=date]{color-scheme:dark}
 
 <div class="modal" id="settingsModal">
  <div class="dialog wide">
-  <h3>Starting Balances</h3>
-  <p>Enter each balance at the beginning of tracking and the date tracking began. These values normally only need to be entered once.</p>
+  <h3>Account Settings</h3>
+  <p>Edit starting balances, current balances, tracking dates, and monthly payoff rates. Current Balance and Monthly Payoff Rate can also be edited directly on the main portal.</p>
   <div id="settingsFields"></div>
   <div class="error" id="settingsError"></div>
-  <div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="primary" onclick="saveSettings()">Save Starting Balances</button></div>
+  <div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="primary" onclick="saveSettings()">Save Account Settings</button></div>
  </div>
 </div>
 
@@ -283,8 +286,9 @@ function metrics(item){
   const elapsed=monthsBetween(sd,today);
   if(elapsed>=0.25 && amountPaid>0) calculatedMonthlyRate=amountPaid/elapsed;
  }
- const manualRate=Number(item?.manualMonthlyRate);
- const monthlyRate=(Number.isFinite(manualRate) && manualRate>=0) ? manualRate : calculatedMonthlyRate;
+ const hasManualRate=item?.manualMonthlyRate!==null && item?.manualMonthlyRate!==undefined && item?.manualMonthlyRate!=="";
+ const manualRate=hasManualRate ? Number(item.manualMonthlyRate) : null;
+ const monthlyRate=(hasManualRate && Number.isFinite(manualRate) && manualRate>=0) ? manualRate : calculatedMonthlyRate;
  if(current===0) payoffDate="Paid off";
  else if(monthlyRate>0){
   const monthsLeft=current/monthlyRate;
@@ -308,12 +312,13 @@ function render(){
   const stats=x ? `
    <div class="moneygrid">
     <div class="stat"><div class="statlabel">Starting Balance</div><div class="statvalue">${money(x.start)}</div></div>
-    <div class="stat"><div class="statlabel">Current Balance</div><div class="statvalue">${money(x.current)}</div></div>
+    <div class="stat"><div class="statlabel">Current Balance</div><input class="statinput" id="inline-current-${key}" inputmode="decimal" value="${x.current}"></div>
     <div class="stat"><div class="statlabel">Amount Paid</div><div class="statvalue">${money(x.amountPaid)}</div></div>
-    <div class="stat"><div class="statlabel">Monthly Payoff Rate</div><div class="statvalue">${x.monthlyRate?money(x.monthlyRate)+"/mo":"—"}</div></div>
+    <div class="stat"><div class="statlabel">Monthly Payoff Rate</div><input class="statinput" id="inline-rate-${key}" inputmode="decimal" value="${x.monthlyRate??""}" placeholder="$0"></div>
     <div class="stat"><div class="statlabel">Tracking Since</div><div class="statvalue">${dateText(item.startDate)}</div></div>
     <div class="stat"><div class="statlabel">Estimated Payoff</div><div class="statvalue">${x.payoffDate||"—"}</div></div>
-   </div>` :
+   </div>
+   <button class="saveinline" onclick="saveInlineValues('${key}')">Save Current Balance / Monthly Rate</button>` :
    `<div class="empty">Add a starting balance, current balance, and tracking start date to activate automatic calculations for this account.</div>`;
   host.insertAdjacentHTML("beforeend",`<div class="goal">
    <div class="goalhead"><div><div class="goalname">${m.name}</div><div class="goalmeta">${m.detail}</div>${status}</div><div class="pct">${x?pct.toFixed(1):"0.0"}%</div></div>
@@ -326,6 +331,36 @@ function render(){
  document.getElementById("ring").style.background=`conic-gradient(var(--green) ${avg*3.6}deg,rgba(255,255,255,.1) 0deg)`;
 }
 render();
+
+window.saveInlineValues=async(key)=>{
+ if(!auth.currentUser){alert("Please sign in first.");return}
+ const currentEl=document.getElementById(`inline-current-${key}`);
+ const rateEl=document.getElementById(`inline-rate-${key}`);
+ const current=parseMoney(currentEl?.value ?? "");
+ const rate=parseMoney(rateEl?.value ?? "");
+ const start=Number(financials[key]?.startingBalance);
+
+ if(current===null){
+  alert(`Enter a valid current balance for ${goalsMeta[key].name}.`);
+  return;
+ }
+ if(Number.isFinite(start) && start>0 && current>start){
+  alert(`The current balance for ${goalsMeta[key].name} cannot exceed its starting balance of ${money(start)}.`);
+  return;
+ }
+
+ const next=structuredClone(financials);
+ next[key]={...next[key],currentBalance:current,manualMonthlyRate:rate};
+ try{
+  await setDoc(doc(db,"portals","retirement"),{
+   financials:next,
+   updatedAt:serverTimestamp(),
+   updatedBy:auth.currentUser.email
+  },{merge:true});
+ }catch(e){
+  alert("Unable to save: "+e.message);
+ }
+};
 
 function accountFields(mode){
  return Object.entries(goalsMeta).map(([key,m])=>{
