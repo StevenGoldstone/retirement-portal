@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.9</title>
+<title>Steven & Brandé Retirement Portal 2.6.10</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -106,7 +106,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.9</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.10</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -206,7 +206,7 @@ input[type=date]{color-scheme:dark}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { initializeFirestore, doc, onSnapshot, getDocFromServer, setDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 const firebaseConfig = {
   "apiKey": "AIzaSyAiGcCtUMHsJIAulcfjxwoOOjhYiKsB8nI",
@@ -482,6 +482,65 @@ window.signInPortal=async()=>{
 }
 };
 
+
+function decodeFirestoreValue(v){
+ if(!v || typeof v!=="object") return null;
+ if("nullValue" in v) return null;
+ if("stringValue" in v) return v.stringValue;
+ if("booleanValue" in v) return v.booleanValue;
+ if("integerValue" in v) return Number(v.integerValue);
+ if("doubleValue" in v) return Number(v.doubleValue);
+ if("timestampValue" in v) return v.timestampValue;
+ if("referenceValue" in v) return v.referenceValue;
+ if("geoPointValue" in v) return v.geoPointValue;
+ if("bytesValue" in v) return v.bytesValue;
+ if("arrayValue" in v){
+  return (v.arrayValue.values||[]).map(decodeFirestoreValue);
+ }
+ if("mapValue" in v){
+  return decodeFirestoreFields(v.mapValue.fields||{});
+ }
+ return null;
+}
+
+function decodeFirestoreFields(fields){
+ const out={};
+ for(const [key,value] of Object.entries(fields||{})){
+  out[key]=decodeFirestoreValue(value);
+ }
+ return out;
+}
+
+async function loadRetirementViaRest(user){
+ const token=await getIdToken(user,true);
+ const url=`https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/portals/retirement`;
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),15000);
+ try{
+  const response=await fetch(url,{
+   method:"GET",
+   headers:{
+    "Authorization":`Bearer ${token}`,
+    "Accept":"application/json"
+   },
+   cache:"no-store",
+   signal:controller.signal
+  });
+  if(!response.ok){
+   let detail="";
+   try{
+    const body=await response.json();
+    detail=body?.error?.message||"";
+   }catch(_){}
+   throw new Error(`REST ${response.status}${detail?": "+detail:""}`);
+  }
+  const body=await response.json();
+  return decodeFirestoreFields(body.fields||{});
+ }finally{
+  clearTimeout(timeout);
+ }
+}
+
 function applyCloudData(data){
  if(data?.financials){
   for(const key of Object.keys(goalsMeta)){
@@ -502,9 +561,33 @@ onAuthStateChanged(auth,async user=>{
   btn.textContent="Sign out";
   const ref=doc(db,"portals","retirement");
 
+  const loadFallback=async(reason)=>{
+   try{
+    text.textContent="Using mobile-safe cloud fallback…";
+    const data=await loadRetirementViaRest(user);
+    if(!data || !data.financials){
+     text.textContent="Fallback connected • financial data missing";
+     dot.classList.remove("online");
+     console.error("REST fallback loaded the retirement document but found no financials object.",data);
+     render();
+     return false;
+    }
+    applyCloudData(data);
+    dot.classList.add("online");
+    text.textContent="Cloud data loaded • mobile fallback";
+    console.warn("Firestore SDK read was unavailable; retirement data loaded through authenticated HTTPS fallback.",reason);
+    return true;
+   }catch(restErr){
+    text.textContent="Cloud fallback error";
+    dot.classList.remove("online");
+    console.error("Authenticated Firestore REST fallback failed:",restErr);
+    render();
+    return false;
+   }
+  };
+
   try{
-   // First read directly from the Firebase server so an iPad/browser cache
-   // cannot leave the financial cards showing blank local defaults.
+   // Normal Firebase/Firestore path remains the primary path.
    const serverSnap=await getDocFromServer(ref);
 
    if(!serverSnap.exists()){
@@ -518,7 +601,7 @@ onAuthStateChanged(auth,async user=>{
 
    if(!data.financials){
     text.textContent="Cloud record loaded • financial data missing";
-    console.error("Retirement document loaded, but it does not contain a financials object.", data);
+    console.error("Retirement document loaded, but it does not contain a financials object.",data);
     render();
    }else{
     applyCloudData(data);
@@ -526,7 +609,7 @@ onAuthStateChanged(auth,async user=>{
     text.textContent="Cloud data loaded";
    }
 
-   // Keep listening for later changes from either device.
+   // Keep the existing normal Firestore live listener on devices where it works.
    unsubscribe=onSnapshot(ref,snap=>{
     if(!snap.exists()){
      text.textContent="Cloud record not found";
@@ -542,19 +625,16 @@ onAuthStateChanged(auth,async user=>{
     }else{
      text.textContent="Cloud connected • financial data missing";
      dot.classList.remove("online");
-     console.error("Live retirement document has no financials object.", liveData);
+     console.error("Live retirement document has no financials object.",liveData);
     }
-   },err=>{
-    text.textContent="Cloud read error: "+(err.code||"unknown");
-    dot.classList.remove("online");
+   },async err=>{
     console.error("Firebase retirement sync error:",err);
+    await loadFallback(err);
    });
 
   }catch(err){
-   text.textContent="Cloud read error: "+(err.code||"unknown");
-   dot.classList.remove("online");
    console.error("Firebase server read error:",err);
-   render();
+   await loadFallback(err);
   }
  }else{
   dot.classList.remove("online");
