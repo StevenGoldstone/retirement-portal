@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.3</title>
+<title>Steven & Brandé Retirement Portal 2.6.4</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.3</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.4</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -149,7 +149,8 @@ input[type=date]{color-scheme:dark}
    <div class="milestone"><div class="step">1</div><div><strong>Eliminate credit cards</strong><span>Reclaim monthly cash flow.</span></div></div>
    <div class="milestone"><div class="step">2</div><div><strong>Accelerate Escondido payoff</strong><span>Redirect former card payments toward principal.</span></div></div>
    <div class="milestone"><div class="step">3</div><div><strong>Pay off the truck</strong><span>Enter retirement without a vehicle loan.</span></div></div>
-   <div class="milestone"><div class="step">4</div><div><strong>Retire October 5, 2031</strong><span>Begin the next chapter with confidence.</span></div></div>
+   <div class="milestone"><div class="step">4</div><div><strong>Pay off Oceanside Mortgage</strong><span>Starting October 2028, divert the monthly Escondido mortgage payment to the Oceanside condo once the Escondido mortgage is paid off.</span></div></div>
+    <div class="milestone"><div class="step">5</div><div><strong>Retire October 5, 2031</strong><span>Begin the next chapter with confidence.</span></div></div>
   </section>
  </aside>
 
@@ -219,13 +220,13 @@ const auth = initializeAuth(app, {
 });
 
 const goalsMeta = {
- creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", readiness:true},
- mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", readiness:true},
- truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", readiness:true},
- oceanside: {name:"Oceanside Mortgage Payoff Plan", detail:"Track your accelerated mortgage payoff beginning October 5, 2028.", readiness:false, future:true}
+ creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", goalText:"Credit Cards paid by Sept 2026", readiness:true},
+ mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", goalText:"Mortgage paid in full by October 5, 2028", readiness:true},
+ truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", goalText:"Truck Loan paid in full by October 5, 2031", readiness:true},
+ oceanside: {name:"Oceanside Mortgage Payoff Plan", detail:"Track your accelerated mortgage payoff beginning October 5, 2028.", goalText:"Mortgage paid in full by October 5, 2031", readiness:false, future:true}
 };
 
-const blankFinancial = () => ({startingBalance:null,currentBalance:null,startDate:""});
+const blankFinancial = () => ({startingBalance:null,currentBalance:null,startDate:"",manualMonthlyRate:null});
 let financials = {
  creditCards: blankFinancial(),
  mortgage: blankFinancial(),
@@ -276,20 +277,20 @@ function metrics(item){
  if(!Number.isFinite(start)||start<=0||!Number.isFinite(current)||current<0) return null;
  const amountPaid=Math.max(0,start-current);
  const percent=Math.max(0,Math.min(100,(amountPaid/start)*100));
- let monthlyRate=null, payoffDate=null;
+ let calculatedMonthlyRate=null, payoffDate=null;
  if(item.startDate){
   const sd=new Date(item.startDate+"T00:00:00");
   const elapsed=monthsBetween(sd,today);
-  if(elapsed>=0.25 && amountPaid>0){
-   monthlyRate=amountPaid/elapsed;
-   if(current===0) payoffDate="Paid off";
-   else if(monthlyRate>0){
-    const monthsLeft=current/monthlyRate;
-    const projected=new Date(today);
-    projected.setDate(projected.getDate()+Math.round(monthsLeft*30.4375));
-    payoffDate=projected.toLocaleDateString("en-US",{month:"short",year:"numeric"});
-   }
-  }
+  if(elapsed>=0.25 && amountPaid>0) calculatedMonthlyRate=amountPaid/elapsed;
+ }
+ const manualRate=Number(item?.manualMonthlyRate);
+ const monthlyRate=(Number.isFinite(manualRate) && manualRate>=0) ? manualRate : calculatedMonthlyRate;
+ if(current===0) payoffDate="Paid off";
+ else if(monthlyRate>0){
+  const monthsLeft=current/monthlyRate;
+  const projected=new Date(today);
+  projected.setDate(projected.getDate()+Math.round(monthsLeft*30.4375));
+  payoffDate=projected.toLocaleDateString("en-US",{month:"short",year:"numeric"});
  }
  return {start,current,amountPaid,percent,monthlyRate,payoffDate};
 }
@@ -303,7 +304,7 @@ function render(){
   const futureLocked=m.future && today<oceansideStart;
   if(x && m.readiness) readiness.push(x.percent);
   const pct=x ? x.percent : 0;
-  const status=futureLocked ? `<div class="future">Future goal • Accelerated payoff begins October 5, 2028 • Mortgage paid in full by October 5, 2031</div>` : `<div class="future">Goal • Mortgage paid in full by October 5, 2031</div>`;
+  const status=futureLocked ? `<div class="future">Future goal • Accelerated payoff begins October 5, 2028 • ${m.goalText}</div>` : `<div class="future">Goal • ${m.goalText}</div>`;
   const stats=x ? `
    <div class="moneygrid">
     <div class="stat"><div class="statlabel">Starting Balance</div><div class="statvalue">${money(x.start)}</div></div>
@@ -333,7 +334,9 @@ function accountFields(mode){
    return `<div class="sectiontitle">${m.name}</div>
     <div class="formgrid">
      <div class="field"><label>Starting Balance</label><input id="start-${key}" inputmode="decimal" placeholder="$0" value="${item.startingBalance??""}"></div>
+     <div class="field"><label>Current Balance</label><input id="current-${key}" inputmode="decimal" placeholder="$0" value="${item.currentBalance??""}"></div>
      <div class="field"><label>Tracking Start Date</label><input id="date-${key}" type="date" value="${item.startDate||""}"></div>
+     <div class="field"><label>Monthly Payoff Rate</label><input id="rate-${key}" inputmode="decimal" placeholder="$0" value="${item.manualMonthlyRate??""}"></div>
     </div>`;
   }
   return `<div class="sectiontitle">${m.name}</div>
@@ -354,12 +357,18 @@ window.saveSettings=async()=>{
  const next=structuredClone(financials);
  for(const key of Object.keys(goalsMeta)){
   const start=parseMoney(document.getElementById(`start-${key}`).value);
+  const current=parseMoney(document.getElementById(`current-${key}`).value);
+  const rate=parseMoney(document.getElementById(`rate-${key}`).value);
   const date=document.getElementById(`date-${key}`).value;
   if((start===null)!=(date==="")){
    document.getElementById("settingsError").textContent=`For ${goalsMeta[key].name}, enter both a starting balance and tracking start date, or leave both blank.`;
    return;
   }
-  next[key]={...next[key],startingBalance:start,startDate:date};
+  if(start!==null && current!==null && current>start){
+   document.getElementById("settingsError").textContent=`For ${goalsMeta[key].name}, current balance cannot exceed starting balance.`;
+   return;
+  }
+  next[key]={...next[key],startingBalance:start,currentBalance:current,startDate:date,manualMonthlyRate:rate};
   if(next[key].currentBalance===null && start!==null) next[key].currentBalance=start;
  }
  try{
