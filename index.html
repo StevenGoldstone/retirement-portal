@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.3.7</title>
+<title>Steven & Brandé Retirement Portal 2.6.3.8</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -103,7 +103,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.3.7</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.3.8</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -299,39 +299,93 @@ async function fetchCloud(url, options={}){
  return await fetch(url,{...options,cache:"no-store"});
 }
 
+
+function xhrJson(url, token, timeoutMs=20000){
+ return new Promise((resolve,reject)=>{
+  const xhr=new XMLHttpRequest();
+  xhr.open("GET",url,true);
+  xhr.setRequestHeader("Authorization",`Bearer ${token}`);
+  xhr.setRequestHeader("Accept","application/json");
+  xhr.timeout=timeoutMs;
+
+  xhr.onload=()=>{
+   const body=xhr.responseText || "";
+   if(xhr.status>=200 && xhr.status<300){
+    try{
+     resolve({status:xhr.status,statusText:xhr.statusText || "OK",json:JSON.parse(body)});
+    }catch(err){
+     reject(new Error("XHR returned invalid JSON: "+err.message));
+    }
+   }else{
+    reject(new Error(`XHR HTTP ${xhr.status} ${xhr.statusText}: ${body.slice(0,1200)}`));
+   }
+  };
+  xhr.onerror=()=>reject(new Error("XHR network error"));
+  xhr.ontimeout=()=>reject(new Error("XHR timeout after "+timeoutMs+"ms"));
+  xhr.onabort=()=>reject(new Error("XHR aborted"));
+  xhr.send();
+ });
+}
+
 async function restReadRetirement(){
  const token=await firebaseIdToken();
- let response;
- try{
-  response=await fetchCloud(firestoreDocUrl,{
+
+ const fetchAttempt=(async()=>{
+  const response=await fetchCloud(firestoreDocUrl,{
    headers:{Authorization:`Bearer ${token}`}
   });
+  if(!response.ok){
+   const detail=await response.text();
+   throw new Error(`FETCH HTTP ${response.status} ${response.statusText}: ${detail}`);
+  }
+  return {transport:"FETCH",status:response.status,statusText:response.statusText || "OK",json:await response.json()};
+ })();
+
+ let result;
+ try{
+  result=await Promise.race([
+   fetchAttempt,
+   new Promise(resolve=>setTimeout(()=>resolve({transport:"FETCH_PENDING"}),8000))
+  ]);
  }catch(err){
   setDiag(
    "AUTH: signed in\n"+
    "TOKEN: acquired\n"+
-   "REST FETCH ERROR: "+(err?.name || "Error")+" | "+(err?.message || String(err))+"\n"+
-   "URL: "+firestoreDocUrl
+   "FETCH ERROR: "+(err?.name || "Error")+" | "+(err?.message || String(err))+"\n"+
+   "Trying XHR transport…"
   );
-  throw err;
+  result={transport:"FETCH_FAILED"};
  }
- if(!response.ok){
-  const detail=await response.text();
+
+ if(result.transport==="FETCH_PENDING" || result.transport==="FETCH_FAILED"){
   setDiag(
    "AUTH: signed in\n"+
    "TOKEN: acquired\n"+
-   "REST HTTP ERROR: "+response.status+" "+response.statusText+"\n"+
-   "BODY: "+detail.slice(0,1200)
+   (result.transport==="FETCH_PENDING" ? "FETCH: still pending after 8 seconds\n" : "FETCH: failed\n")+
+   "XHR: starting same authenticated request…"
   );
-  throw new Error(`Cloud read failed (${response.status}): ${detail}`);
+  try{
+   const xhrResult=await xhrJson(firestoreDocUrl,token);
+   result={transport:"XHR",...xhrResult};
+  }catch(err){
+   setDiag(
+    "AUTH: signed in\n"+
+    "TOKEN: acquired\n"+
+    (result.transport==="FETCH_PENDING" ? "FETCH: still pending after 8 seconds\n" : "FETCH: failed\n")+
+    "XHR ERROR: "+(err?.message || String(err))+"\n"+
+    "URL: "+firestoreDocUrl
+   );
+   throw err;
+  }
  }
- const body=await response.json();
+
+ const body=result.json;
  const data=decodeFirestoreDocument(body);
  setDiag(
   "AUTH: signed in\n"+
   "TOKEN: acquired\n"+
-  "REST HTTP: "+response.status+" OK\n"+
-  "DOCUMENT: "+(body?.name || "(unknown)")+"\n"+
+  "TRANSPORT: "+result.transport+"\n"+
+  "HTTP: "+result.status+" "+(result.statusText || "OK")+"\n"+
   "HAS FINANCIALS: "+Boolean(data?.financials)+"\n"+
   "FINANCIAL KEYS: "+Object.keys(data?.financials || {}).join(", ")
  );
@@ -670,7 +724,7 @@ if("serviceWorker" in navigator){
  background:rgba(0,0,0,.92);color:#fff;border:1px solid #777;
  border-radius:12px;padding:12px;font:13px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
  white-space:pre-wrap;word-break:break-word;max-height:34vh;overflow:auto;">
- <strong>2.6.3.7 CONNECTION DIAGNOSTIC</strong>
+ <strong>2.6.3.8 CONNECTION DIAGNOSTIC</strong>
  <div id="diagText">Waiting for authentication and cloud read…</div>
 </div>
 
