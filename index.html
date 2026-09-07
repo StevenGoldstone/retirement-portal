@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.7</title>
+<title>Steven & Brandé Retirement Portal 2.6.8</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -106,7 +106,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.7</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.8</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -205,7 +205,7 @@ input[type=date]{color-scheme:dark}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, getDocFromServer, setDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -480,26 +480,84 @@ window.signInPortal=async()=>{
 }
 };
 
-onAuthStateChanged(auth,user=>{
+function applyCloudData(data){
+ if(data?.financials){
+  for(const key of Object.keys(goalsMeta)){
+   financials[key]={...blankFinancial(),...(data.financials[key]||{})};
+  }
+ }
+ history=Array.isArray(data?.balanceHistory)?data.balanceHistory:[];
+ render();
+}
+
+onAuthStateChanged(auth,async user=>{
  const dot=document.getElementById("syncDot"), text=document.getElementById("syncText"), btn=document.getElementById("accountBtn");
  if(unsubscribe){unsubscribe();unsubscribe=null}
+
  if(user){
-  dot.classList.add("online"); text.textContent="Cloud sync active"; btn.textContent="Sign out";
+  dot.classList.remove("online");
+  text.textContent="Loading retirement data…";
+  btn.textContent="Sign out";
   const ref=doc(db,"portals","retirement");
-  unsubscribe=onSnapshot(ref,snap=>{
-   if(snap.exists()){
-    const data=snap.data();
-    if(data.financials){
-      for(const key of Object.keys(goalsMeta)){
-        financials[key]={...blankFinancial(),...(data.financials[key]||{})};
-      }
-    }
-    history=Array.isArray(data.balanceHistory)?data.balanceHistory:[];
+
+  try{
+   // First read directly from the Firebase server so an iPad/browser cache
+   // cannot leave the financial cards showing blank local defaults.
+   const serverSnap=await getDocFromServer(ref);
+
+   if(!serverSnap.exists()){
+    text.textContent="Cloud record not found";
+    console.error("Retirement document portals/retirement was not found on the Firebase server.");
+    render();
+    return;
    }
+
+   const data=serverSnap.data();
+
+   if(!data.financials){
+    text.textContent="Cloud record loaded • financial data missing";
+    console.error("Retirement document loaded, but it does not contain a financials object.", data);
+    render();
+   }else{
+    applyCloudData(data);
+    dot.classList.add("online");
+    text.textContent="Cloud data loaded";
+   }
+
+   // Keep listening for later changes from either device.
+   unsubscribe=onSnapshot(ref,snap=>{
+    if(!snap.exists()){
+     text.textContent="Cloud record not found";
+     dot.classList.remove("online");
+     return;
+    }
+
+    const liveData=snap.data();
+    if(liveData.financials){
+     applyCloudData(liveData);
+     dot.classList.add("online");
+     text.textContent="Cloud sync active";
+    }else{
+     text.textContent="Cloud connected • financial data missing";
+     dot.classList.remove("online");
+     console.error("Live retirement document has no financials object.", liveData);
+    }
+   },err=>{
+    text.textContent="Cloud read error: "+(err.code||"unknown");
+    dot.classList.remove("online");
+    console.error("Firebase retirement sync error:",err);
+   });
+
+  }catch(err){
+   text.textContent="Cloud read error: "+(err.code||"unknown");
+   dot.classList.remove("online");
+   console.error("Firebase server read error:",err);
    render();
-  },err=>{text.textContent="Sync permission error";dot.classList.remove("online");console.error(err)});
+  }
  }else{
-  dot.classList.remove("online"); text.textContent="Sign in to sync"; btn.textContent="Sign in";
+  dot.classList.remove("online");
+  text.textContent="Sign in to sync";
+  btn.textContent="Sign in";
  }
 });
 if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js"));
