@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Retirement Portal">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Steven & Brandé Retirement Portal 2.6.3.8</title>
+<title>Steven & Brandé Retirement Portal 2.6.4</title>
 <style>
 :root {
  --bg:#07131f; --panel:rgba(12,31,45,.77); --panel2:rgba(255,255,255,.075);
@@ -79,6 +79,9 @@ input{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba
 .stat{padding:12px;border-radius:13px;background:rgba(255,255,255,.055);border:1px solid var(--line)}
 .statlabel{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em}
 .statvalue{font-size:17px;font-weight:850;margin-top:5px}
+.statinput{width:100%;margin-top:5px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--text);padding:8px 9px;font-weight:850}
+.statinput:focus{outline:2px solid rgba(121,216,255,.35);outline-offset:1px}
+.saveinline{margin-top:10px;padding:8px 12px;border-radius:10px;border:none;background:var(--gold);color:#172331;font-weight:850}
 .goalactions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .future{color:var(--gold);font-weight:800;font-size:13px;margin-top:4px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
@@ -103,7 +106,7 @@ input[type=date]{color-scheme:dark}
 <header class="glass">
  <div class="top">
   <div>
-   <div class="eyebrow">Steven & Brandé • Version 2.6.3.8</div>
+   <div class="eyebrow">Steven & Brandé • Version 2.6.4</div>
    <h1 id="greeting">Retirement Portal</h1>
    <div class="subtitle">One shared retirement plan, synchronized across every signed-in device.</div>
   </div>
@@ -125,7 +128,7 @@ input[type=date]{color-scheme:dark}
   <div class="toolbar">
    <h2>Shared Financial Progress</h2>
    <div>
-    <button class="secondary inline" id="settingsBtn">Starting Balances</button>
+    <button class="secondary inline" id="settingsBtn">Account Settings</button>
     <button class="primary inline" id="updateBtn">Record Payments</button>
    </div>
   </div>
@@ -149,7 +152,8 @@ input[type=date]{color-scheme:dark}
    <div class="milestone"><div class="step">1</div><div><strong>Eliminate credit cards</strong><span>Reclaim monthly cash flow.</span></div></div>
    <div class="milestone"><div class="step">2</div><div><strong>Accelerate Escondido payoff</strong><span>Redirect former card payments toward principal.</span></div></div>
    <div class="milestone"><div class="step">3</div><div><strong>Pay off the truck</strong><span>Enter retirement without a vehicle loan.</span></div></div>
-   <div class="milestone"><div class="step">4</div><div><strong>Retire October 5, 2031</strong><span>Begin the next chapter with confidence.</span></div></div>
+   <div class="milestone"><div class="step">4</div><div><strong>Pay off Oceanside Mortgage</strong><span>Starting October 2028, divert the monthly Escondido mortgage payment to the Oceanside condo once the Escondido mortgage is paid off, increasing the Oceanside mortgage payment to approximately $5,913.06 per month to pay the mortgage in full by October 5, 2031.</span></div></div>
+    <div class="milestone"><div class="step">5</div><div><strong>Retire October 5, 2031</strong><span>Begin the next chapter with confidence.</span></div></div>
   </section>
  </aside>
 
@@ -169,11 +173,11 @@ input[type=date]{color-scheme:dark}
 
 <div class="modal" id="settingsModal">
  <div class="dialog wide">
-  <h3>Starting Balances</h3>
-  <p>Enter each balance at the beginning of tracking and the date tracking began. These values normally only need to be entered once.</p>
+  <h3>Account Settings</h3>
+  <p>Edit starting balances, current balances, tracking dates, and monthly payoff rates. Current Balance and Monthly Payoff Rate can also be edited directly on the main portal.</p>
   <div id="settingsFields"></div>
   <div class="error" id="settingsError"></div>
-  <div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="primary" onclick="saveSettings()">Save Starting Balances</button></div>
+  <div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="primary" onclick="saveSettings()">Save Account Settings</button></div>
  </div>
 </div>
 
@@ -200,7 +204,6 @@ input[type=date]{color-scheme:dark}
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { initializeAuth, browserLocalPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
@@ -265,40 +268,14 @@ function encodeFirestoreValue(value){
  return {stringValue:String(value)};
 }
 
-
-function setDiag(message){
- const el=document.getElementById("diagText");
- if(el) el.textContent=message;
-}
-
 async function firebaseIdToken(){
- if(!auth.currentUser){
-  setDiag("AUTH: no currentUser\nREST READ: not attempted");
-  throw new Error("Please sign in first.");
- }
- try{
-  const token=await auth.currentUser.getIdToken();
-  setDiag(
-   "AUTH: signed in\n"+
-   "USER: "+(auth.currentUser.email || "(no email)")+"\n"+
-   "TOKEN: acquired\n"+
-   "REST READ: starting…"
-  );
-  return token;
- }catch(err){
-  setDiag(
-   "AUTH: signed in\n"+
-   "USER: "+(auth.currentUser.email || "(no email)")+"\n"+
-   "TOKEN ERROR: "+(err?.name || "Error")+" | "+(err?.code || "")+" | "+(err?.message || String(err))
-  );
-  throw err;
- }
+ if(!auth.currentUser) throw new Error("Please sign in first.");
+ return await auth.currentUser.getIdToken();
 }
 
 async function fetchCloud(url, options={}){
  return await fetch(url,{...options,cache:"no-store"});
 }
-
 
 function xhrJson(url, token, timeoutMs=20000){
  return new Promise((resolve,reject)=>{
@@ -307,15 +284,11 @@ function xhrJson(url, token, timeoutMs=20000){
   xhr.setRequestHeader("Authorization",`Bearer ${token}`);
   xhr.setRequestHeader("Accept","application/json");
   xhr.timeout=timeoutMs;
-
   xhr.onload=()=>{
    const body=xhr.responseText || "";
    if(xhr.status>=200 && xhr.status<300){
-    try{
-     resolve({status:xhr.status,statusText:xhr.statusText || "OK",json:JSON.parse(body)});
-    }catch(err){
-     reject(new Error("XHR returned invalid JSON: "+err.message));
-    }
+    try{ resolve({json:JSON.parse(body)}); }
+    catch(err){ reject(new Error("XHR returned invalid JSON: "+err.message)); }
    }else{
     reject(new Error(`XHR HTTP ${xhr.status} ${xhr.statusText}: ${body.slice(0,1200)}`));
    }
@@ -329,16 +302,15 @@ function xhrJson(url, token, timeoutMs=20000){
 
 async function restReadRetirement(){
  const token=await firebaseIdToken();
-
  const fetchAttempt=(async()=>{
   const response=await fetchCloud(firestoreDocUrl,{
    headers:{Authorization:`Bearer ${token}`}
   });
   if(!response.ok){
    const detail=await response.text();
-   throw new Error(`FETCH HTTP ${response.status} ${response.statusText}: ${detail}`);
+   throw new Error(`Cloud read failed (${response.status}): ${detail}`);
   }
-  return {transport:"FETCH",status:response.status,statusText:response.statusText || "OK",json:await response.json()};
+  return {transport:"FETCH",json:await response.json()};
  })();
 
  let result;
@@ -347,49 +319,15 @@ async function restReadRetirement(){
    fetchAttempt,
    new Promise(resolve=>setTimeout(()=>resolve({transport:"FETCH_PENDING"}),8000))
   ]);
- }catch(err){
-  setDiag(
-   "AUTH: signed in\n"+
-   "TOKEN: acquired\n"+
-   "FETCH ERROR: "+(err?.name || "Error")+" | "+(err?.message || String(err))+"\n"+
-   "Trying XHR transport…"
-  );
+ }catch{
   result={transport:"FETCH_FAILED"};
  }
 
  if(result.transport==="FETCH_PENDING" || result.transport==="FETCH_FAILED"){
-  setDiag(
-   "AUTH: signed in\n"+
-   "TOKEN: acquired\n"+
-   (result.transport==="FETCH_PENDING" ? "FETCH: still pending after 8 seconds\n" : "FETCH: failed\n")+
-   "XHR: starting same authenticated request…"
-  );
-  try{
-   const xhrResult=await xhrJson(firestoreDocUrl,token);
-   result={transport:"XHR",...xhrResult};
-  }catch(err){
-   setDiag(
-    "AUTH: signed in\n"+
-    "TOKEN: acquired\n"+
-    (result.transport==="FETCH_PENDING" ? "FETCH: still pending after 8 seconds\n" : "FETCH: failed\n")+
-    "XHR ERROR: "+(err?.message || String(err))+"\n"+
-    "URL: "+firestoreDocUrl
-   );
-   throw err;
-  }
+  const xhrResult=await xhrJson(firestoreDocUrl,token);
+  result={transport:"XHR",...xhrResult};
  }
-
- const body=result.json;
- const data=decodeFirestoreDocument(body);
- setDiag(
-  "AUTH: signed in\n"+
-  "TOKEN: acquired\n"+
-  "TRANSPORT: "+result.transport+"\n"+
-  "HTTP: "+result.status+" "+(result.statusText || "OK")+"\n"+
-  "HAS FINANCIALS: "+Boolean(data?.financials)+"\n"+
-  "FINANCIAL KEYS: "+Object.keys(data?.financials || {}).join(", ")
- );
- return data;
+ return decodeFirestoreDocument(result.json);
 }
 
 async function restPatchRetirement(fields){
@@ -439,7 +377,7 @@ async function loadRetirementFromCloud(){
   dot.classList.add("online");
   textEl.textContent="Cloud sync active";
  }catch(err){
-  console.error("Retirement REST read failed:",err);
+  console.error("Retirement cloud read failed:",err);
   dot.classList.remove("online");
   textEl.textContent="Cloud connection error";
  }finally{
@@ -453,13 +391,13 @@ function startRestSync(){
 }
 
 const goalsMeta = {
- creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", readiness:true},
- mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", readiness:true},
- truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", readiness:true},
- oceanside: {name:"Oceanside Mortgage Payoff Plan", detail:"Track your accelerated mortgage payoff beginning October 5, 2028.", readiness:false, future:true}
+ creditCards: {name:"Credit Cards", detail:"Eliminate revolving debt and reclaim monthly cash flow.", goalText:"Credit Cards paid by Sept 2026", readiness:true},
+ mortgage: {name:"Escondido Mortgage", detail:"Accelerate principal reduction toward the retirement plan.", goalText:"Mortgage paid in full by October 5, 2028", interestRate:"5.25%", readiness:true},
+ truck: {name:"Truck Loan", detail:"Enter retirement without a vehicle loan.", goalText:"Truck Loan paid in full by October 5, 2031", interestRate:"6.99%", readiness:true},
+ oceanside: {name:"Oceanside Mortgage Payoff Plan", detail:"Track your accelerated mortgage payoff beginning October 5, 2028.", goalText:"Mortgage paid in full by October 5, 2031", interestRate:"3.25%", readiness:false, future:true}
 };
 
-const blankFinancial = () => ({startingBalance:null,currentBalance:null,startDate:""});
+const blankFinancial = () => ({startingBalance:null,currentBalance:null,startDate:"",manualMonthlyRate:null});
 let financials = {
  creditCards: blankFinancial(),
  mortgage: blankFinancial(),
@@ -510,20 +448,21 @@ function metrics(item){
  if(!Number.isFinite(start)||start<=0||!Number.isFinite(current)||current<0) return null;
  const amountPaid=Math.max(0,start-current);
  const percent=Math.max(0,Math.min(100,(amountPaid/start)*100));
- let monthlyRate=null, payoffDate=null;
+ let calculatedMonthlyRate=null, payoffDate=null;
  if(item.startDate){
   const sd=new Date(item.startDate+"T00:00:00");
   const elapsed=monthsBetween(sd,today);
-  if(elapsed>=0.25 && amountPaid>0){
-   monthlyRate=amountPaid/elapsed;
-   if(current===0) payoffDate="Paid off";
-   else if(monthlyRate>0){
-    const monthsLeft=current/monthlyRate;
-    const projected=new Date(today);
-    projected.setDate(projected.getDate()+Math.round(monthsLeft*30.4375));
-    payoffDate=projected.toLocaleDateString("en-US",{month:"short",year:"numeric"});
-   }
-  }
+  if(elapsed>=0.25 && amountPaid>0) calculatedMonthlyRate=amountPaid/elapsed;
+ }
+ const hasManualRate=item?.manualMonthlyRate!==null && item?.manualMonthlyRate!==undefined && item?.manualMonthlyRate!=="";
+ const manualRate=hasManualRate ? Number(item.manualMonthlyRate) : null;
+ const monthlyRate=(hasManualRate && Number.isFinite(manualRate) && manualRate>=0) ? manualRate : calculatedMonthlyRate;
+ if(current===0) payoffDate="Paid off";
+ else if(monthlyRate>0){
+  const monthsLeft=current/monthlyRate;
+  const projected=new Date(today);
+  projected.setDate(projected.getDate()+Math.round(monthsLeft*30.4375));
+  payoffDate=projected.toLocaleDateString("en-US",{month:"short",year:"numeric"});
  }
  return {start,current,amountPaid,percent,monthlyRate,payoffDate};
 }
@@ -537,16 +476,18 @@ function render(){
   const futureLocked=m.future && today<oceansideStart;
   if(x && m.readiness) readiness.push(x.percent);
   const pct=x ? x.percent : 0;
-  const status=futureLocked ? `<div class="future">Future goal • Accelerated payoff begins October 5, 2028 • Mortgage paid in full by October 5, 2031</div>` : `<div class="future">Goal • Mortgage paid in full by October 5, 2031</div>`;
+  const status=futureLocked ? `<div class="future">Future goal • Accelerated payoff begins October 5, 2028 • ${m.goalText}</div>` : `<div class="future">Goal • ${m.goalText}</div>`;
   const stats=x ? `
    <div class="moneygrid">
     <div class="stat"><div class="statlabel">Starting Balance</div><div class="statvalue">${money(x.start)}</div></div>
-    <div class="stat"><div class="statlabel">Current Balance</div><div class="statvalue">${money(x.current)}</div></div>
+    <div class="stat"><div class="statlabel">Current Balance</div><input class="statinput" id="inline-current-${key}" inputmode="decimal" value="${x.current}"></div>
     <div class="stat"><div class="statlabel">Amount Paid</div><div class="statvalue">${money(x.amountPaid)}</div></div>
-    <div class="stat"><div class="statlabel">Monthly Payoff Rate</div><div class="statvalue">${x.monthlyRate?money(x.monthlyRate)+"/mo":"—"}</div></div>
+    <div class="stat"><div class="statlabel">Monthly Payoff Rate</div><input class="statinput" id="inline-rate-${key}" inputmode="decimal" value="${item.manualMonthlyRate??""}" placeholder="${x.monthlyRate?money(x.monthlyRate):"$0"}"></div>
     <div class="stat"><div class="statlabel">Tracking Since</div><div class="statvalue">${dateText(item.startDate)}</div></div>
     <div class="stat"><div class="statlabel">Estimated Payoff</div><div class="statvalue">${x.payoffDate||"—"}</div></div>
-   </div>` :
+    ${m.interestRate ? `<div class="stat"><div class="statlabel">Interest Rate</div><div class="statvalue">${m.interestRate}</div></div>` : ""}
+   </div>
+   <button class="saveinline" onclick="saveInlineValues('${key}')">Save Current Balance / Monthly Rate</button>` :
    `<div class="empty">Add a starting balance, current balance, and tracking start date to activate automatic calculations for this account.</div>`;
   host.insertAdjacentHTML("beforeend",`<div class="goal">
    <div class="goalhead"><div><div class="goalname">${m.name}</div><div class="goalmeta">${m.detail}</div>${status}</div><div class="pct">${x?pct.toFixed(1):"0.0"}%</div></div>
@@ -560,6 +501,43 @@ function render(){
 }
 render();
 
+window.saveInlineValues=async(key)=>{
+ if(!auth.currentUser){alert("Please sign in first.");return}
+ const currentEl=document.getElementById(`inline-current-${key}`);
+ const rateEl=document.getElementById(`inline-rate-${key}`);
+ const current=parseMoney(currentEl?.value ?? "");
+ const rateRaw=(rateEl?.value ?? "").trim();
+ const rate=rateRaw==="" ? null : parseMoney(rateRaw);
+ const start=Number(financials[key]?.startingBalance);
+
+ if(current===null){
+  alert(`Enter a valid current balance for ${goalsMeta[key].name}.`);
+  return;
+ }
+ if(Number.isFinite(start) && start>0 && current>start){
+  alert(`The current balance for ${goalsMeta[key].name} cannot exceed its starting balance of ${money(start)}.`);
+  return;
+ }
+
+ const next=structuredClone(financials);
+ if(rateRaw!=="" && rate===null){
+  alert(`Enter a valid monthly payoff rate for ${goalsMeta[key].name}, or leave it blank for automatic calculation.`);
+  return;
+ }
+ next[key]={...next[key],currentBalance:current,manualMonthlyRate:rate};
+ try{
+  await restPatchRetirement({
+   financials:next,
+   updatedAt:new Date(),
+   updatedBy:auth.currentUser.email
+  });
+  financials=next;
+  render();
+ }catch(e){
+  alert("Unable to save: "+e.message);
+ }
+};
+
 function accountFields(mode){
  return Object.entries(goalsMeta).map(([key,m])=>{
   const item=financials[key]||blankFinancial();
@@ -567,7 +545,9 @@ function accountFields(mode){
    return `<div class="sectiontitle">${m.name}</div>
     <div class="formgrid">
      <div class="field"><label>Starting Balance</label><input id="start-${key}" inputmode="decimal" placeholder="$0" value="${item.startingBalance??""}"></div>
+     <div class="field"><label>Current Balance</label><input id="current-${key}" inputmode="decimal" placeholder="$0" value="${item.currentBalance??""}"></div>
      <div class="field"><label>Tracking Start Date</label><input id="date-${key}" type="date" value="${item.startDate||""}"></div>
+     <div class="field"><label>Monthly Payoff Rate</label><input id="rate-${key}" inputmode="decimal" placeholder="$0" value="${item.manualMonthlyRate??""}"></div>
     </div>`;
   }
   return `<div class="sectiontitle">${m.name}</div>
@@ -588,12 +568,23 @@ window.saveSettings=async()=>{
  const next=structuredClone(financials);
  for(const key of Object.keys(goalsMeta)){
   const start=parseMoney(document.getElementById(`start-${key}`).value);
+  const current=parseMoney(document.getElementById(`current-${key}`).value);
+  const rateRaw=document.getElementById(`rate-${key}`).value.trim();
+  const rate=rateRaw==="" ? null : parseMoney(rateRaw);
   const date=document.getElementById(`date-${key}`).value;
   if((start===null)!=(date==="")){
    document.getElementById("settingsError").textContent=`For ${goalsMeta[key].name}, enter both a starting balance and tracking start date, or leave both blank.`;
    return;
   }
-  next[key]={...next[key],startingBalance:start,startDate:date};
+  if(start!==null && current!==null && current>start){
+   document.getElementById("settingsError").textContent=`For ${goalsMeta[key].name}, current balance cannot exceed starting balance.`;
+   return;
+  }
+  if(rateRaw!=="" && rate===null){
+   document.getElementById("settingsError").textContent=`For ${goalsMeta[key].name}, enter a valid monthly payoff rate or leave it blank for automatic calculation.`;
+   return;
+  }
+  next[key]={...next[key],startingBalance:start,currentBalance:current,startDate:date,manualMonthlyRate:rate};
   if(next[key].currentBalance===null && start!==null) next[key].currentBalance=start;
  }
  try{
@@ -689,14 +680,12 @@ onAuthStateChanged(auth,async user=>{
   dot.classList.remove("online");
   textEl.textContent="Loading retirement data…";
   btn.textContent="Sign out";
-  setDiag("AUTH: signed in\nUSER: "+(user.email || "(no email)")+"\nTOKEN/REST: pending…");
   await loadRetirementFromCloud();
   startRestSync();
  }else{
   dot.classList.remove("online");
   textEl.textContent="Sign in to sync";
   btn.textContent="Sign in";
-  setDiag("AUTH: signed out\nWaiting for sign-in…");
  }
 });
 
@@ -710,23 +699,11 @@ if("serviceWorker" in navigator){
   try{
    const registrations=await navigator.serviceWorker.getRegistrations();
    await Promise.all(registrations.map(reg=>reg.unregister()));
-   console.log("Retirement Portal service worker disabled for clean live loading.");
   }catch(e){
    console.warn("Service worker cleanup could not complete:",e);
   }
  });
 }
 </script>
-
-
-<div id="diagPanel" style="
- position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;
- background:rgba(0,0,0,.92);color:#fff;border:1px solid #777;
- border-radius:12px;padding:12px;font:13px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
- white-space:pre-wrap;word-break:break-word;max-height:34vh;overflow:auto;">
- <strong>2.6.3.8 CONNECTION DIAGNOSTIC</strong>
- <div id="diagText">Waiting for authentication and cloud read…</div>
-</div>
-
 </body>
 </html>
